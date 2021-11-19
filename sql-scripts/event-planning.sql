@@ -3,8 +3,8 @@ DROP TABLE event_planners;
 DROP TABLE Bookings CASCADE;
 DROP TABLE guests_attend CASCADE;
 DROP TABLE dietary_restrictions_have CASCADE;
-DROP TABLE dietary_restrictions_accommodate CASCADE;
-DROP TABLE dietary_restrictions_match CASCADE;
+DROP TABLE menus_offered CASCADE;
+DROP TABLE menus_accommodate CASCADE;
 DROP TABLE resources_require;
 DROP TABLE resources CASCADE;
 DROP TABLE qualifications_have;
@@ -36,7 +36,7 @@ CREATE TABLE Events (
 );
 
 CREATE TABLE Guests_Attend (
-	eventID			integer,
+	eventID			integer NOT NULL,
 	email			varchar(128) UNIQUE,
 	title			varchar(128) NOT NULL,
 	name			varchar(128) NOT NULL,
@@ -44,8 +44,17 @@ CREATE TABLE Guests_Attend (
 	pronoun			varchar(16) NOT NULL,
 	under_21		boolean DEFAULT false,
 	PRIMARY KEY (eventID,email),
-	FOREIGN KEY (eventID) REFERENCES Events(eventID) ON DELETE CASCADE
+	FOREIGN KEY (eventID) REFERENCES Events(eventID)
 );
+
+CREATE TABLE Dietary_Restrictions_Have (
+	email		varchar(128),
+	restriction	varchar(128),
+	severity	varchar(128),
+	PRIMARY KEY (email, restriction),
+	FOREIGN KEY (email) REFERENCES Guests_Attend(email) ON DELETE CASCADE
+);
+
 
 CREATE TYPE resourceType AS ENUM ('Entertainment', 'Equipment', 'Venues','Staff','Caterers');
 
@@ -130,27 +139,22 @@ CREATE TABLE Resources_Caterers (
 	FOREIGN KEY (resourceID) REFERENCES Resources(resourceID) ON DELETE CASCADE 
 ) INHERITS (Resources);
 
-CREATE TABLE Dietary_Restrictions_Have (
-	email		varchar(128),
-	restriction	varchar(128),
-	severity	varchar(128),
-	PRIMARY KEY (email, restriction),
-	FOREIGN KEY (email) REFERENCES Guests_Attend(email) ON DELETE CASCADE
+CREATE TABLE Menus_Offered (
+	menuID		SERIAL UNIQUE,
+	catererID	integer,
+	name		varchar(128),
+	description	text,
+	PRIMARY KEY (menuID, catererID),
+	FOREIGN KEY (catererID) REFERENCES Resources_Caterers(resourceID) ON DELETE CASCADE
+
 );
 
-CREATE TABLE Dietary_Restrictions_Accommodate (
-	restriction	varchar(128),
-	resourceID	integer,
-	PRIMARY KEY (restriction, resourceID),
-	FOREIGN KEY (resourceID) REFERENCES Resources_Caterers(resourceID) ON DELETE CASCADE
+CREATE TABLE Menus_Accommodate (
+	accomodation	varchar(128),
+	menuID		integer,
+	catererID	integer,
+	PRIMARY KEY (accomodation, catererID, menuID),
+	FOREIGN KEY (menuID) REFERENCES Menus_Offered(menuID) ON DELETE CASCADE,
+	FOREIGN KEY (catererID) REFERENCES Resources_Caterers
 );
-
-CREATE TABLE Dietary_Restrictions_Match (
-	caterer_ID		integer,
-	guestEmail		varchar(128),
-	guestRestriction	varchar(128),
-	PRIMARY KEY (caterer_ID, guestEmail, guestRestriction),
-	FOREIGN KEY (guestEmail,guestRestriction) references Dietary_Restrictions_Have(email,restriction),
-	FOREIGN KEY (caterer_ID,guestRestriction) REFERENCES Dietary_Restrictions_Accommodate(resourceID,restriction) ON DELETE CASCADE
-);	
 
