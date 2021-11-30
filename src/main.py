@@ -1,4 +1,6 @@
 import streamlit as st
+import psycopg2
+import configparser
 import pandas as pd
 import numpy as np
 
