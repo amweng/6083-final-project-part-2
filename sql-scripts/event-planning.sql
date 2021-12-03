@@ -122,7 +122,8 @@ CREATE TABLE Resources_Venues (
 ) INHERITS (Resources);
 
 CREATE TABLE Resources_Staff (
-	name			varchar(128) UNIQUE NOT NULL,
+	first_name		varchar(128) NOT NULL,
+	last_name		varchar(128) NOT NULL,
 	email			varchar(128) UNIQUE NOT NULL,
 	pronoun			varchar(16) NOT NULL,
 	PRIMARY KEY (resourceID),
