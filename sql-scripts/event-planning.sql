@@ -15,7 +15,8 @@ DROP TYPE resourceType;
 
 CREATE TABLE Event_Planners (
 	plannerID		SERIAL PRIMARY KEY,
-	name			varchar(128) NOT NULL,
+	first_name		varchar(128) NOT NULL,
+	last_name		varchar(128) NOT NULL,
 	email			varchar(128) UNIQUE NOT NULL,
 	phone			varchar(128) NOT NULL,
 	pronoun			varchar(16) NOT NULL
@@ -39,7 +40,8 @@ CREATE TABLE Guests_Attend (
 	eventID			integer NOT NULL,
 	email			varchar(128) UNIQUE,
 	title			varchar(128) NOT NULL,
-	name			varchar(128) NOT NULL,
+	first_name		varchar(128) NOT NULL,
+	last_name		varchar(128) NOT NULL,
 	phone			varchar(32) NOT NULL,
 	pronoun			varchar(16) NOT NULL,
 	under_21		boolean DEFAULT false,
