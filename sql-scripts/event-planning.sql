@@ -64,7 +64,6 @@ CREATE TABLE Resources (
 	resourceID		SERIAL UNIQUE,
 	resourceType		resourceType NOT NULL,
 	name			varchar(128) NOT NULL,
-	num			integer NOT NULL,
 	fee			numeric(16,2) DEFAULT 0.00 NOT NULL,
 	specification		varchar(256),
 	PRIMARY KEY (resourceID)
