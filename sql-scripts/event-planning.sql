@@ -30,10 +30,10 @@ CREATE TABLE Events (
 	location		varchar(128) NOT NULL,
 	cost			numeric(16,2) DEFAULT 0.00 NOT NULL,
 	budget			numeric(16,2) DEFAULT 0.00 NOT NULL,
-	planned_by		integer NOT NULL,
+	event_planner_email	varchar(128) NOT NULL,
 	event_name		varchar(128) NOT NULL,
 	over_21			boolean DEFAULT false,
-	FOREIGN KEY (planned_by) REFERENCES Event_Planners (plannerID)
+	FOREIGN KEY (event_planner_email) REFERENCES Event_Planners (email)
 );
 
 CREATE TABLE Guests_Attend (
