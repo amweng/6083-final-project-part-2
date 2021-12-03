@@ -121,6 +121,7 @@ CREATE TABLE Resources_Venues (
 ) INHERITS (Resources);
 
 CREATE TABLE Resources_Staff (
+	email			varchar(128) UNIQUE NOT NULL,
 	pronoun			varchar(16) NOT NULL,
 	PRIMARY KEY (resourceID),
 	FOREIGN KEY (resourceID) REFERENCES Resources(resourceID)
