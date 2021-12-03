@@ -14,16 +14,15 @@ DROP TYPE resourceType;
 
 
 CREATE TABLE Event_Planners (
-	plannerID		SERIAL PRIMARY KEY,
+	email			varchar(128) PRIMARY KEY,
 	first_name		varchar(128) NOT NULL,
 	last_name		varchar(128) NOT NULL,
-	email			varchar(128) UNIQUE NOT NULL,
 	phone			varchar(128) NOT NULL,
 	pronoun			varchar(16) NOT NULL
 );
 
 CREATE TABLE Events (
-	eventID			SERIAL PRIMARY KEY,
+	eventID			integer PRIMARY KEY,
 	date			date NOT NULL,
 	start_at		timestamp with time zone NOT NULL,
 	end_at			timestamp with time zone NOT NULL,
@@ -63,7 +62,6 @@ CREATE TYPE resourceType AS ENUM ('Entertainment', 'Equipment', 'Venues','Staff'
 CREATE TABLE Resources (
 	resourceID		SERIAL UNIQUE,
 	resourceType		resourceType NOT NULL,
-	name			varchar(128) NOT NULL,
 	fee			numeric(16,2) DEFAULT 0.00 NOT NULL,
 	specification		varchar(256),
 	PRIMARY KEY (resourceID)
@@ -95,6 +93,7 @@ CREATE TABLE Resources_Require (
 CREATE TYPE contentRating AS ENUM ('G','PG','PG-13','R','X');
 
 CREATE TABLE Resources_Entertainment(
+	name			varchar(128) UNIQUE NOT NULL,
 	genre			varchar(64) NOT NULL,
 	contentRating		contentRating NOT NULL,
 	spaceRequired		integer,
@@ -103,6 +102,7 @@ CREATE TABLE Resources_Entertainment(
 ) INHERITS (Resources);
 
 CREATE TABLE Resources_Equipment (
+	name			varchar(128) NOT NULL,
 	equipmentType		varchar(128) NOT NULL,
 	quantity		integer NOT NULL,
 	vendor			varchar(128),
@@ -111,6 +111,7 @@ CREATE TABLE Resources_Equipment (
 ) INHERITS (Resources);
 
 CREATE TABLE Resources_Venues (
+	name			varchar(128) UNIQUE,
 	address			varchar(128) NOT NULL,
 	roomNum			varchar(32),
 	capacity		integer DEFAULT 0 NOT NULL,
@@ -121,6 +122,7 @@ CREATE TABLE Resources_Venues (
 ) INHERITS (Resources);
 
 CREATE TABLE Resources_Staff (
+	name			varchar(128) UNIQUE NOT NULL,
 	email			varchar(128) UNIQUE NOT NULL,
 	pronoun			varchar(16) NOT NULL,
 	PRIMARY KEY (resourceID),
@@ -130,33 +132,34 @@ CREATE TABLE Resources_Staff (
 CREATE TYPE qualification AS ENUM ('Electrical','Bartending','Serving','Security');
 
 CREATE TABLE Qualifications_Have (
-	staffID			integer,
+	staff_email		varchar(128) NOT NULL,
 	qualification		qualification,
-	PRIMARY KEY (staffID, qualification),
-	FOREIGN KEY (staffID) REFERENCES Resources_Staff(resourceID) ON DELETE CASCADE
+	PRIMARY KEY (staff_email, qualification),
+	FOREIGN KEY (staff_email) REFERENCES Resources_Staff(email) ON DELETE CASCADE
 );
 
 CREATE TABLE Resources_Caterers (
+	name			varchar(128) UNIQUE NOT NULL,
 	PRIMARY KEY (resourceID),
 	FOREIGN KEY (resourceID) REFERENCES Resources(resourceID) ON DELETE CASCADE 
 ) INHERITS (Resources);
 
 CREATE TABLE Menus_Offered (
 	menuID		SERIAL UNIQUE,
-	catererID	integer,
+	caterer_name	varchar(128) NOT NULL,
 	name		varchar(128),
 	description	text,
-	PRIMARY KEY (menuID, catererID),
-	FOREIGN KEY (catererID) REFERENCES Resources_Caterers(resourceID) ON DELETE CASCADE
+	PRIMARY KEY (menuID, caterer_name),
+	FOREIGN KEY (caterer_name) REFERENCES Resources_Caterers(name) ON DELETE CASCADE
 
 );
 
 CREATE TABLE Menus_Accommodate (
 	accomodation	varchar(128),
 	menuID		integer,
-	catererID	integer,
-	PRIMARY KEY (accomodation, catererID, menuID),
+	caterer_name	varchar(128),
+	PRIMARY KEY (accomodation, caterer_name, menuID),
 	FOREIGN KEY (menuID) REFERENCES Menus_Offered(menuID) ON DELETE CASCADE,
-	FOREIGN KEY (catererID) REFERENCES Resources_Caterers
+	FOREIGN KEY (caterer_name) REFERENCES Resources_Caterers(name)
 );
 
