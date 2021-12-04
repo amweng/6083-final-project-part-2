@@ -60,34 +60,37 @@ CREATE TABLE Dietary_Restrictions_Have (
 CREATE TYPE resourceType AS ENUM ('Entertainment', 'Equipment', 'Venues','Staff','Caterers');
 
 CREATE TABLE Resources (
-	resourceID		SERIAL UNIQUE,
 	resourceType		resourceType NOT NULL,
+	typeID			integer NOT NULL,
 	fee			numeric(16,2) DEFAULT 0.00 NOT NULL,
 	specification		varchar(256),
-	PRIMARY KEY (resourceID)
+	PRIMARY KEY (resourceType, typeID)
 );
 
 CREATE TABLE Bookings (
 	eventID			integer,
-	resourceID		integer,
+	resourceType		resourceType NOT NULL,
+	typeID			integer NOT NULL,
 	start_at		timestamp with time zone NOT NULL,
 	end_at			timestamp with time zone NOT NULL,
 	cost			numeric(16,2) DEFAULT 0.00 NOT NULL,
 	num			integer NOT NULL,
 	description		varchar(256),
-	PRIMARY KEY (eventID, resourceID),
+	PRIMARY KEY (eventID, resourceType, typeID),
 	FOREIGN KEY (eventID) REFERENCES Events(eventID) ON DELETE CASCADE,
-	FOREIGN KEY (resourceID) REFERENCES Resources(resourceID) ON DELETE CASCADE
+	FOREIGN KEY (resourceType,typeID) REFERENCES Resources(resourceType,typeID) ON DELETE CASCADE
 );
 
 CREATE TABLE Resources_Require (
-	resourceID1		integer,
-	resourceID2		integer,
+	r1resourceType		resourceType,
+	r1typeID		integer,
+	r2resourceType		resourceType,
+	r2typeID		integer,
 	numRequired		integer NOT NULL,
 	specification		varchar(256),
-	PRIMARY KEY (resourceID1, resourceID2),
-	FOREIGN KEY (resourceID1) references Resources(resourceID),
-	FOREIGN KEY (resourceID2) references Resources(resourceID)
+	PRIMARY KEY (r1resourceType, r1typeID, r2resourceType , r2typeID),
+	FOREIGN KEY (r1resourceType, r1typeID) references Resources(resourceType, typeID) ON DELETE CASCADE,
+	FOREIGN KEY (r2resourceType, r2typeID) references Resources(resourceType, typeID)
 );
 
 CREATE TYPE contentRating AS ENUM ('G','PG','PG-13','R','X');
@@ -97,8 +100,8 @@ CREATE TABLE Resources_Entertainment(
 	genre			varchar(64) NOT NULL,
 	contentRating		contentRating NOT NULL,
 	spaceRequired		integer,
-	PRIMARY KEY (resourceID),
-	FOREIGN KEY (resourceID) REFERENCES Resources(resourceID)
+	PRIMARY KEY (resourceType, typeID),
+	FOREIGN KEY (resourceType, typeID) REFERENCES Resources(resourceType, typeID)
 ) INHERITS (Resources);
 
 CREATE TABLE Resources_Equipment (
@@ -106,8 +109,8 @@ CREATE TABLE Resources_Equipment (
 	equipmentType		varchar(128) NOT NULL,
 	quantity		integer NOT NULL,
 	vendor			varchar(128),
-	PRIMARY KEY (resourceID),
-	FOREIGN KEY (resourceID) REFERENCES Resources(resourceID)
+	PRIMARY KEY (resourceType, typeID),
+	FOREIGN KEY (resourceType, typeID) REFERENCES Resources(resourceType, typeID)
 ) INHERITS (Resources);
 
 CREATE TABLE Resources_Venues (
@@ -117,8 +120,8 @@ CREATE TABLE Resources_Venues (
 	capacity		integer DEFAULT 0 NOT NULL,
 	stageArea		integer,
 	liquorLicense		boolean DEFAULT false,
-	PRIMARY KEY (resourceID),
-	FOREIGN KEY (resourceID) REFERENCES Resources(resourceID)
+	PRIMARY KEY (resourceType, typeID),
+	FOREIGN KEY (resourceType, typeID) REFERENCES Resources(resourceType, typeID)
 ) INHERITS (Resources);
 
 CREATE TABLE Resources_Staff (
@@ -126,8 +129,8 @@ CREATE TABLE Resources_Staff (
 	last_name		varchar(128) NOT NULL,
 	email			varchar(128) UNIQUE NOT NULL,
 	pronoun			varchar(16) NOT NULL,
-	PRIMARY KEY (resourceID),
-	FOREIGN KEY (resourceID) REFERENCES Resources(resourceID)
+	PRIMARY KEY (resourceType, typeID),
+	FOREIGN KEY (resourceType, typeID) REFERENCES Resources(resourceType, typeID)
 ) INHERITS (Resources);
 
 CREATE TYPE qualification AS ENUM ('Electrical','Bartending','Serving','Security');
@@ -141,8 +144,8 @@ CREATE TABLE Qualifications_Have (
 
 CREATE TABLE Resources_Caterers (
 	name			varchar(128) UNIQUE NOT NULL,
-	PRIMARY KEY (resourceID),
-	FOREIGN KEY (resourceID) REFERENCES Resources(resourceID) ON DELETE CASCADE 
+	PRIMARY KEY (resourceType, typeID),
+	FOREIGN KEY (resourceType, typeID) REFERENCES Resources(resourceType, typeID)
 ) INHERITS (Resources);
 
 CREATE TABLE Menus_Offered (
