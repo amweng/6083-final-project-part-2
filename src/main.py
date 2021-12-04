@@ -1,54 +1,87 @@
 import streamlit as st
 import psycopg2
-import configparser
+from configparser import ConfigParser
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
 
-st.title('Holy crap, I\'m a webpage!')
+# Function Definitions
+@st.cache
+def get_config(filename="database.ini", section="postgres"):
+    parser = ConfigParser()
+    parser.read(filename)
+    return {k: v for k, v in parser.items(section)}
 
-'''
-### This is a guide on how to get a streamlit webpage up and running.
-#### Note how, inside block quotes, we can use some markdown?
-#### ___Markdown, baby!___
----
+@st.cache
+def query_db(sql: str):
+    # print(f"Running query_db(): {sql}")
 
-__Before I begin, I should mention that while the webpage is up, I couldn't query the database for some reason. Will work on that...__
+    db_info = get_config()
 
-Block comments like this one appear as plaintext on the webpage.  Our primary 'editor' is actually the browser!
-This means that we don't 'run' our python script in an IDE.  Whenever we modify the .py file, we save it, and 
-the browser should automatically update.  If it doesn't, look in the upper right corner for 'source code updated'
-and press the 'always run' button.  It will update whenever you save the file!
+    # Connect to an existing database
+    conn = psycopg2.connect(**db_info)
 
-I'll now go through the steps to set up this file and start editing from the remote jedi server.  I'll be using
-Visual Studio Code, since the 'remote development extensions' module allows for easy use of remote working within 
-the IDE.
+    # Open a cursor to perform database operations
+    cur = conn.cursor()
 
-1. Log in to jedi.poly.edu with SSH.  Visual Studio Code automatically sets up a config file for the host.  If you want to create one,
-   of if it throws an error, it should look like this:
+    # Execute a command: this creates a new table
+    cur.execute(sql)
 
-        Host jedi.poly.edu
-        HostName jedi.poly.edu
-        User NET_ID
-        LocalForward ASSIGNED_PORT localhost:RANDOM_PORT
+    # Obtain data
+    data = cur.fetchall()
 
-    When mine was auto-generated it had written 'ASSIGNED_PORT:localhost:RANDOM_PORT' and that caused a failure.
+    column_names = [desc[0] for desc in cur.description]
 
-2. Now that you're on Jedi, clone the repository onto the machine.  These are the files that I assume are on there:
-    a. A .sql file which sets up the database.  This should have the create table statements required for our data.
-    b. CSV files which contain all of the data.  (I think we also have to have the headers align with the table headers?)
-    c. A basic main.py like this one that we will open in our remote IDE to build the page.
+    # Make the changes to the database persistent
+    conn.commit()
 
-3. run the following command: psql -d NET_ID_db -a -f PATH_TO_CREATE_DB.sql
-    That file should be the file where you have all the create table statements.
+    # Close communication with the database
+    cur.close()
+    conn.close()
 
-4. Populate the tables with data stored in the CSV files:
-    cat PATH_TO_CSV.csv | psql -U NET_ID -d NET_ID_db -c "COPY [table_name] from STDIN CSV HEADER"
+    df = pd.DataFrame(data=data, columns=column_names)
 
-    Do this for every table.
+    return df
 
-5. Now we can forward the webpage to our local port.  In the terminal, type: streamlit run main.py --server.address=localhost --server.port=ASSIGNED_PORT
+# Page Contents
+page = st.sidebar.selectbox("Navigation panel:", ["Welcome", "Raw Data"])
 
-The streamlit application will spin up, and will provide you with a network URL that you can pop into your browser.  The webpage should be waitng for you there!
+if page == "Welcome":
+    # This page surveys the aims of the project, gives a few high-level statistics on the data
+    # and suggests how the user can interact with the applicaiton.
+    '''
+    # Database-Driven Event Planning
+    by Andrew Weng (aw4108) & Russell Wustenberg (rw2873)
 
-'''
+    Submitted in fulfillment of CS-GY 6083, Principles of Database Systems (Fall 2021),
 
+    taught by Professor Julia Stoyonovitch, NYU Tandon School of Engineering.
+
+    ---
+    This application was developped by Andrew Weng (aw4108) and Russell Wustenberg (rw2873) as the final project
+    for CS-GY 6083, Principles of Database Systems, taught by Julia Stoyonovitch at NYU's Tandon School of Engineering.
+    The application is built on top of a Postgres SQL database that comes pre-populated with synthetic data crafted
+    for this application.  
+    
+    ## The Goal
+    The goal of this application is to emulate an event planning service.  Event planning is notoriously difficult
+    due to the complexity of coordination between the venue, the guests, and any resources the event may need.  Our
+    service helps streamline the event planning process by making convenient the reservation of resources and communication
+    between the event planner, the guests and any third-party vendors.
+    '''
+    all_tables = "SELECT relname FROM pg_class WHERE relkind='r' AND relname !~ '^(pg_|sql_)';"
+    all_table_names = query_db(all_tables)["relname"].tolist()
+    
+    '# List of all relation names:'
+    st.write(all_table_names)
+
+    ' ## todo: figure out how to compute some basic counting statistics over number of entries and display these as graphs / charts, etc.'
+    
+elif page == "Raw Data":
+
+    '### This was just an attempt at getting some kind of chart to render.'
+    '### Also to get multiple pages up and running!'
+
+    query = "SELECT fee FROM resources ORDER BY fee;"
+    df = query_db(query)
+    st.bar_chart(df)
