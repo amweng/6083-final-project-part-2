@@ -8,12 +8,32 @@ import matplotlib.pyplot as plt
 # Function Definitions
 @st.cache
 def get_config(filename="database.ini", section="postgres"):
+    # Establishes the connection with the database based on the parameters
+    # within the database.ini file.  You should update these parameters such
+    # that they are as follows:
+    #
+    # database.ini
+    # 1 [postgres]
+    # 2 host=localhost
+    # 3 port=5432
+    # 4 dbname=NETID_db
+    # 5 user=NETID
+    # 
+    # note, if editing on jedi.poly.edu, this can be done by navigating to the folder
+    # containing the database.ini file and executing 'nano database.ini' to pull up the
+    # in-terminal nano text editor.  Write using ctl-O and exit with ctl-X.
+    
     parser = ConfigParser()
     parser.read(filename)
     return {k: v for k, v in parser.items(section)}
 
 @st.cache
 def query_db(sql: str):
+    # Function is taken from the in-class demo on launching a streamlit
+    # application.  Takes in an SQL command in the form of a string and
+    # returns a pandas dataframe containing the data returned by the 
+    # database.
+
     # print(f"Running query_db(): {sql}")
 
     db_info = get_config()
