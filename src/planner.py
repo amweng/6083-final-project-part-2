@@ -1,13 +1,28 @@
 import streamlit as st
 import functions
+from enum import Enum
+
+user = 0
+action = 0
+    
+
+def UI_selectAction():
+    aEventPlannerActions = ["Make a New Event", "View Your Events", "Book Resources", "Cancel an Event"]
+    page = st.sidebar.selectbox("What do you want to do?", aEventPlannerActions)
+
+def UI_Display():
+    UI_selectEP
+
+def makeEvent():
+    pass
+
 
 def show():
+    qEventPlanners = "SELECT first_name, last_name FROM event_planners;"
+    dfEventPlannerNames = functions.query_db(qEventPlanners)
+    dfEventPlannerNames['name'] = (dfEventPlannerNames['first_name'] + ' ' + dfEventPlannerNames['last_name'])
+    aEventPlannerNames = dfEventPlannerNames['name'].tolist()
+    user = st.sidebar.selectbox("Who are you?", aEventPlannerNames)
 
-    st.write('### This was just an attempt at getting some kind of chart to render.'
-    'Also to get multiple pages up and running!')
-
-    option = st.selectbox('What would you like to know about entertainment?', ('fee', 'genre', 'contentRating'))
-    st.write('You selected:', option)
-    query = "SELECT " + option + ", name FROM resources_entertainment ORDER BY " + option + ";"
-    df = functions.query_db(query)
-    st.table(df)
+    st.write(user)
+    

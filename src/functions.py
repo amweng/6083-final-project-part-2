@@ -33,7 +33,7 @@ def get_config(filename="database.ini",
     return {k: v for k, v in parser.items(section)}
 
 
-@st.cache
+@st.cache(allow_output_mutation = True)
 def query_db(sql: str):
     # Function is taken from the in-class demo on launching a streamlit
     # application.  Takes in an SQL command in the form of a string and
