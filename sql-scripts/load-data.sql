@@ -15,10 +15,7 @@ CREATE TEMPORARY TABLE temp_resources_entertainment(
 	PRIMARY KEY (resourceType, typeID)
 );
 
-
-COPY temp_resources_entertainment(resourceType, typeID, fee, specification, name, genre, contentRating, spaceRequired)
-FROM '/Users/andrewweng/Developer/databases/6083-final-project-part-2/data/resources_entertainment.csv'
-DELIMITER ',' CSV;
+\copy resources_entertainment FROM '~/6083-final-project-part-2/data/resources_entertainment.csv' WITH CSV;
 
 INSERT INTO resources_entertainment
 SELECT resourceType, typeID, fee, specification, name, genre, contentRating, spaceRequired
