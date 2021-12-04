@@ -100,7 +100,7 @@ CREATE TABLE Resources_Entertainment(
 	genre			varchar(64) NOT NULL,
 	contentRating		contentRating NOT NULL,
 	spaceRequired		integer,
-	PRIMARY KEY (resourceType, typeID),
+	PRIMARY KEY (typeID),
 	FOREIGN KEY (resourceType, typeID) REFERENCES Resources(resourceType, typeID)
 ) INHERITS (Resources);
 
@@ -109,7 +109,7 @@ CREATE TABLE Resources_Equipment (
 	equipmentType		varchar(128) NOT NULL,
 	quantity		integer NOT NULL,
 	vendor			varchar(128),
-	PRIMARY KEY (resourceType, typeID),
+	PRIMARY KEY (typeID),
 	FOREIGN KEY (resourceType, typeID) REFERENCES Resources(resourceType, typeID)
 ) INHERITS (Resources);
 
@@ -120,7 +120,7 @@ CREATE TABLE Resources_Venues (
 	capacity		integer DEFAULT 0 NOT NULL,
 	stageArea		integer,
 	liquorLicense		boolean DEFAULT false,
-	PRIMARY KEY (resourceType, typeID),
+	PRIMARY KEY (typeID),
 	FOREIGN KEY (resourceType, typeID) REFERENCES Resources(resourceType, typeID)
 ) INHERITS (Resources);
 
@@ -129,7 +129,7 @@ CREATE TABLE Resources_Staff (
 	last_name		varchar(128) NOT NULL,
 	email			varchar(128) UNIQUE NOT NULL,
 	pronoun			varchar(16) NOT NULL,
-	PRIMARY KEY (resourceType, typeID),
+	PRIMARY KEY (typeID),
 	FOREIGN KEY (resourceType, typeID) REFERENCES Resources(resourceType, typeID)
 ) INHERITS (Resources);
 
@@ -144,7 +144,7 @@ CREATE TABLE Qualifications_Have (
 
 CREATE TABLE Resources_Caterers (
 	name			varchar(128) UNIQUE NOT NULL,
-	PRIMARY KEY (resourceType, typeID),
+	PRIMARY KEY (typeID),
 	FOREIGN KEY (resourceType, typeID) REFERENCES Resources(resourceType, typeID)
 ) INHERITS (Resources);
 
