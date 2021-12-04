@@ -96,41 +96,41 @@ CREATE TABLE Resources_Require (
 CREATE TYPE contentRating AS ENUM ('G','PG','PG-13','R','X');
 
 CREATE TABLE Resources_Entertainment(
+	typeID			SERIAL,
 	name			varchar(128) UNIQUE NOT NULL,
 	genre			varchar(64) NOT NULL,
 	contentRating		contentRating NOT NULL,
 	spaceRequired		integer,
-	PRIMARY KEY (typeID),
-	FOREIGN KEY (resourceType, typeID) REFERENCES Resources(resourceType, typeID)
+	PRIMARY KEY (typeID)
 ) INHERITS (Resources);
 
 CREATE TABLE Resources_Equipment (
+	typeID			SERIAL,
 	name			varchar(128) NOT NULL,
 	equipmentType		varchar(128) NOT NULL,
 	quantity		integer NOT NULL,
 	vendor			varchar(128),
-	PRIMARY KEY (typeID),
-	FOREIGN KEY (resourceType, typeID) REFERENCES Resources(resourceType, typeID)
+	PRIMARY KEY (typeID)
 ) INHERITS (Resources);
 
 CREATE TABLE Resources_Venues (
+	typeID			SERIAL,
 	name			varchar(128) UNIQUE,
 	address			varchar(128) NOT NULL,
 	roomNum			varchar(32),
 	capacity		integer DEFAULT 0 NOT NULL,
 	stageArea		integer,
 	liquorLicense		boolean DEFAULT false,
-	PRIMARY KEY (typeID),
-	FOREIGN KEY (resourceType, typeID) REFERENCES Resources(resourceType, typeID)
+	PRIMARY KEY (typeID)
 ) INHERITS (Resources);
 
 CREATE TABLE Resources_Staff (
+	typeID			SERIAL,
 	first_name		varchar(128) NOT NULL,
 	last_name		varchar(128) NOT NULL,
 	email			varchar(128) UNIQUE NOT NULL,
 	pronoun			varchar(16) NOT NULL,
-	PRIMARY KEY (typeID),
-	FOREIGN KEY (resourceType, typeID) REFERENCES Resources(resourceType, typeID)
+	PRIMARY KEY (typeID)
 ) INHERITS (Resources);
 
 CREATE TYPE qualification AS ENUM ('Electrical','Bartending','Serving','Security');
@@ -143,9 +143,9 @@ CREATE TABLE Qualifications_Have (
 );
 
 CREATE TABLE Resources_Caterers (
+	typeID			SERIAL,
 	name			varchar(128) UNIQUE NOT NULL,
-	PRIMARY KEY (typeID),
-	FOREIGN KEY (resourceType, typeID) REFERENCES Resources(resourceType, typeID)
+	PRIMARY KEY (typeID)
 ) INHERITS (Resources);
 
 CREATE TABLE Menus_Offered (
@@ -154,8 +154,7 @@ CREATE TABLE Menus_Offered (
 	name		varchar(128),
 	description	text,
 	PRIMARY KEY (menuID, caterer_name),
-	FOREIGN KEY (caterer_name) REFERENCES Resources_Caterers(name) ON DELETE CASCADE
-
+	FOREIGN KEY (caterer_name) REFERENCES Resources_Caterers(name)
 );
 
 CREATE TABLE Menus_Accommodate (
