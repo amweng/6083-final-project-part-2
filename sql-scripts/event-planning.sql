@@ -14,9 +14,9 @@ DROP TYPE resourceType;
 
 
 CREATE TABLE Event_Planners (
-	email			varchar(128) PRIMARY KEY,
 	first_name		varchar(128) NOT NULL,
 	last_name		varchar(128) NOT NULL,
+	email			varchar(128) PRIMARY KEY,
 	phone			varchar(128) NOT NULL,
 	pronoun			varchar(16) NOT NULL
 );
@@ -24,11 +24,11 @@ CREATE TABLE Event_Planners (
 CREATE TABLE Events (
 	eventID			integer PRIMARY KEY,
 	date			date NOT NULL,
-	start_at		timestamp with time zone NOT NULL,
-	end_at			timestamp with time zone NOT NULL,
+	start_at		time with time zone NOT NULL,
+	end_at			time with time zone NOT NULL,
 	location		varchar(128) NOT NULL,
-	cost			numeric(16,2) DEFAULT 0.00 NOT NULL,
-	budget			numeric(16,2) DEFAULT 0.00 NOT NULL,
+	cost			numeric(16,2) DEFAULT 0.00,
+	budget			numeric(16,2) DEFAULT 0.00,
 	event_planner_email	varchar(128) NOT NULL,
 	event_name		varchar(128) NOT NULL,
 	over_21			boolean DEFAULT false,
@@ -36,28 +36,31 @@ CREATE TABLE Events (
 );
 
 CREATE TABLE Guests_Attend (
-	eventID			integer NOT NULL,
-	email			varchar(128) UNIQUE,
-	title			varchar(128) NOT NULL,
+	eventID			integer,
+	email			varchar(128),
+	title			varchar(128),
 	first_name		varchar(128) NOT NULL,
 	last_name		varchar(128) NOT NULL,
+	suffix			varchar(64),
 	phone			varchar(32) NOT NULL,
 	pronoun			varchar(16) NOT NULL,
 	under_21		boolean DEFAULT false,
+	UNIQUE(eventID,email),
 	PRIMARY KEY (eventID,email),
 	FOREIGN KEY (eventID) REFERENCES Events(eventID)
 );
 
 CREATE TABLE Dietary_Restrictions_Have (
+	eventID		integer,
 	email		varchar(128),
 	restriction	varchar(128),
 	severity	varchar(128),
-	PRIMARY KEY (email, restriction),
-	FOREIGN KEY (email) REFERENCES Guests_Attend(email) ON DELETE CASCADE
+	PRIMARY KEY (eventID, email, restriction),
+	FOREIGN KEY (eventID, email) REFERENCES Guests_Attend(eventID, email) ON DELETE CASCADE
 );
 
 
-CREATE TYPE resourceType AS ENUM ('Entertainment', 'Equipment', 'Venues','Staff','Caterers');
+CREATE TYPE resourceType AS ENUM ('Entertainment', 'Equipment', 'Venue','Staff','Caterer');
 
 CREATE TABLE Resources (
 	resourceType		resourceType NOT NULL,
@@ -126,10 +129,10 @@ CREATE TABLE Resources_Venues (
 
 CREATE TABLE Resources_Staff (
 	typeID			SERIAL,
+	pronoun			varchar(64) NOT NULL,
 	first_name		varchar(128) NOT NULL,
 	last_name		varchar(128) NOT NULL,
 	email			varchar(128) UNIQUE NOT NULL,
-	pronoun			varchar(16) NOT NULL,
 	PRIMARY KEY (typeID)
 ) INHERITS (Resources);
 
