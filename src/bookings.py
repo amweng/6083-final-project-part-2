@@ -18,6 +18,14 @@ def isResourceAvailable(resourceType: str, resourceID: int, timeWindow: pandas.D
             return False
     return True
 
+def getAllAvailable(resourceType: str, resourceID: int, timeWindow: pandas.DataFrame):
+    qIsOverlapping = "SELECT ('" + str(timeWindow['start_at'][0]) + "','" + str(timeWindow['end_at'][0]) + "') " + \
+                     "OVERLAPS (B.start_at, B.end_at) as Available, B.* FROM bookings B " + \
+                     "WHERE B.resourcetype = '" + str(resourceType) + "' " + ";"
+
+    dfAllAvailable = functions.query_db(qIsOverlapping)
+    return dfAllAvailable
+
 def isResourceQtyAvailable(resourceType: str, resourceID: int, timeWindow: pandas.DataFrame, qty: int):
     # Queries the resources table and bookings table to compute math over whether there exists a sufficient quantity for booking
     # Returns a boolean
