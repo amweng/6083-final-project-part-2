@@ -96,7 +96,7 @@ CREATE TABLE Resources_Require (
 	specification		varchar(256),
 	PRIMARY KEY (r1resourceType, r1typeID, r2resourceType , r2typeID),
 	FOREIGN KEY (r1resourceType, r1typeID) references Resources(resourceType, typeID) ON DELETE CASCADE,
-	FOREIGN KEY (r2resourceType, r2typeID) references Resources(resourceType, typeID)
+	FOREIGN KEY (r2resourceType, r2typeID) references Resources(resourceType, typeID) ON DELETE CASCADE
 );
 
 CREATE TYPE contentRating AS ENUM ('G','PG','PG-13','R','X');
