@@ -1,6 +1,9 @@
 import streamlit as st
 import functions
 import pandas
+import datetime
+import pytz
+import tzlocal
 
 user = 'test'
 action = 'test'
@@ -15,6 +18,12 @@ def getUserName(userEmail: str, users: pandas.DataFrame):
     dfUserRow = user[user.email.isin([userEmail])]
     aUserName = dfUserRow['name'].tolist()[0]
     return aUserName
+
+def pd_timestamp_to_dt_with_tz(pd_ts):
+    dt = pd_ts.to_pydatetime()
+    ttz = dt.astimezone(datetime.datetime.now(datetime.timezone.utc).astimezone().tzinfo)
+    timetz = ttz.strftime('%m-%d-%Y %H:%M:%S%z')
+    return str(timetz)
 
 def show():
     qEventPlanners = "SELECT email, first_name, last_name FROM event_planners;"
@@ -33,15 +42,17 @@ def show():
     if(action == "Make a New Event"):
         pass
     elif(action == "View Your Events"):
-        qFetchEvents = "SELECT * FROM events WHERE event_planner_email LIKE '" + user + \
+        qFetchEvents = "SELECT * FROM events E WHERE E.event_planner_email LIKE '" + user + \
             "' ORDER BY date, start_at;"
         dfEventsAll = functions.query_db(qFetchEvents)
         
         # Give the user a quick glance of all their created events
         st.markdown("### Events planned by " + userName + ":")
-        fmt = "%H:%M:%S"
         dfEventsSurvey = dfEventsAll[['date', 'start_at', 'end_at', 'event_name']]
-        st.table(dfEventsSurvey)
+        for idx in range(len(dfEventsSurvey['start_at'])):
+            st.write(dfEventsSurvey['start_at'][idx])
+            dfEventsSurvey['start_at'][idx] = pd_timestamp_to_dt_with_tz(dfEventsSurvey['start_at'][idx])
+            st.table(dfEventsSurvey)
 
         # For each event, display the location details
         st.markdown('### Locations for all events:')
@@ -51,7 +62,18 @@ def show():
         st.table(dfEventLocations)
 
     elif(action == "Book Resources"):
-        pass
+        qFetchEvents = "SELECT * FROM events E WHERE E.event_planner_email LIKE '" + user + \
+            "' ORDER BY date, start_at;"
+        dfEventsAll = functions.query_db(qFetchEvents)
+        dfEventSelect = dfEventsAll['date'] + dfEventsAll['event_name']
+        aEventSelect = []
+        for idx in range(len(dfEventsSelect['date'])):
+            aEventSelect.append(dfEventSelect['date'][idx].isoformat() + ' -- ' + dfEventSelect['event_name'][idx])
+
+        selectedEvent = st.selectbox('Select an event for which you would like to make a booking:', aEventSelect)
+
+        qSelectedDetails = "SELECT * FROM events E WHERE E.event_planner_email LIKE '" + user + \
+                           "' AND ORDER BY date, start_at;"
     elif(action == "Cancel an Event"):
         pass
     
