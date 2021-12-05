@@ -9,15 +9,14 @@ def isResourceAvailable(resourceType: str, resourceID: int, timeWindow: pandas.D
     # Assumes timeWindow comes from a dataframe with the columsn (eventID, date, start_at, end_at) from events table
     qIsOverlapping = "SELECT ('" + str(timeWindow['start_at'][0]) + "','" + str(timeWindow['end_at'][0]) + "') " + \
                      "OVERLAPS (B.start_at, B.end_at) FROM bookings B " + \
-                     "WHERE B.eventid = " + str(timeWindow['eventid'][0]) + " " + \
-                     "AND B.resourcetype = '" + str(resourceType) + "' " + \
-                     "AND B.typeid <> " + str(resourceID) + ";"
+                     "WHERE B.resourcetype = '" + str(resourceType) + "' " + \
+                     "AND B.typeid = " + str(resourceID) + ";"
     dfIsOverlapping = functions.query_db(qIsOverlapping)
 
     for idx in range(len(dfIsOverlapping['overlaps'])):
         if dfIsOverlapping['overlaps'][idx] == True:
-            return (False, dfIsOverlapping)
-    return (True, dfIsOverlapping)
+            return False
+    return True
 
 def isResourceQtyAvailable(resourceType: str, resourceID: int, timeWindow: pandas.DataFrame, qty: int):
     # Queries the resources table and bookings table to compute math over whether there exists a sufficient quantity for booking
