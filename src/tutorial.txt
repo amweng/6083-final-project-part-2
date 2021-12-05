@@ -1,0 +1,42 @@
+### This is a guide on how to get a streamlit webpage up and running.
+#### Note how, inside block quotes, we can use some markdown?
+#### ___Markdown, baby!___
+---
+
+__Before I begin, I should mention that while the webpage is up, I couldn't query the database for some reason. Will work on that...__
+
+Block comments like this one appear as plaintext on the webpage.  Our primary 'editor' is actually the browser!
+This means that we don't 'run' our python script in an IDE.  Whenever we modify the .py file, we save it, and 
+the browser should automatically update.  If it doesn't, look in the upper right corner for 'source code updated'
+and press the 'always run' button.  It will update whenever you save the file!
+
+I'll now go through the steps to set up this file and start editing from the remote jedi server.  I'll be using
+Visual Studio Code, since the 'remote development extensions' module allows for easy use of remote working within 
+the IDE.
+
+1. Log in to jedi.poly.edu with SSH.  Visual Studio Code automatically sets up a config file for the host.  If you want to create one,
+   of if it throws an error, it should look like this:
+
+        Host jedi.poly.edu
+        HostName jedi.poly.edu
+        User NET_ID
+        LocalForward ASSIGNED_PORT localhost:RANDOM_PORT
+
+    When mine was auto-generated it had written 'ASSIGNED_PORT:localhost:RANDOM_PORT' and that caused a failure.
+
+2. Now that you're on Jedi, clone the repository onto the machine.  These are the files that I assume are on there:
+    a. A .sql file which sets up the database.  This should have the create table statements required for our data.
+    b. CSV files which contain all of the data.  (I think we also have to have the headers align with the table headers?)
+    c. A basic main.py like this one that we will open in our remote IDE to build the page.
+
+3. run the following command: psql -d NET_ID_db -a -f PATH_TO_CREATE_DB.sql
+    That file should be the file where you have all the create table statements.
+
+4. Populate the tables with data stored in the CSV files:
+    cat PATH_TO_CSV.csv | psql -U NET_ID -d NET_ID_db -c "COPY [table_name] from STDIN CSV HEADER"
+
+    Do this for every table.
+
+5. Now we can forward the webpage to our local port.  In the terminal, type: streamlit run main.py --server.address=localhost --server.port=ASSIGNED_PORT
+
+The streamlit application will spin up, and will provide you with a network URL that you can pop into your browser.  The webpage should be waitng for you there!
