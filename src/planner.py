@@ -119,6 +119,18 @@ def show():
             dfAllAvailableDisplay = dfAllAvailable[['name', 'genre', 'contentrating', 'fee']]
             st.markdown('#### Here is a list of all available enteratiners for your event:')
             st.table(dfAllAvailableDisplay)
+        elif(selectedResourceType == 'Equipment'):
+            dfAllAvailableDisplay = dfAllAvailable[['name', 'equipmenttype', 'quantity', 'fee']]
+            st.markdown('#### Here is a list of all available equipment for your event:')
+            st.table(dfAllAvailableDisplay)
+        elif(selectedResourceType == 'Staff'):
+            st.markdown('### PUT A SELECT BOX FOR STAFF QUALIFICATIONS')
+        elif(selectedResourceType == 'Venue'):
+            dfAllAvailableDisplay = dfAllAvailable[['name', 'address', 'roomnum', 'capacity', 'liquorlicense', 'stagearea', 'fee']]
+            st.markdown('#### Here is a list of all available venues for your event:')
+            st.table(dfAllAvailableDisplay)
+        else:
+            "Something has gone horribly wrong and I'll probably die!"
         
 
     elif(action == "Cancel an Event"):
