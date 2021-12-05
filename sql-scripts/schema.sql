@@ -29,8 +29,8 @@ CREATE TABLE Event_Planners (
 CREATE TABLE Events (
 	eventID			integer PRIMARY KEY,
 	date			date NOT NULL,
-	start_at		time with time zone NOT NULL,
-	end_at			time with time zone NOT NULL,
+	start_at		timestamptz NOT NULL,
+	end_at			timestamptz NOT NULL,
 	location		varchar(128) NOT NULL,
 	budget			numeric(16,2) DEFAULT 0.00,
 	event_planner_email	varchar(128) NOT NULL,
