@@ -13,7 +13,7 @@ import tzlocal
 
 
 @st.cache
-def get_config(filename="database-local.ini",
+def get_config(filename="database.ini",
                section="postgres"):
     # Establishes the connection with the database based on the parameters
     # within the database.ini file.  You should update these parameters such

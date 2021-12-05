@@ -1,4 +1,4 @@
-import functions.py
+import functions
 import datetime as dt
 import pytz
 import pandas
@@ -37,7 +37,7 @@ def makeBooking(eventID: int, resourceType: str, typeID: int, qty: int):
                             dfEventEntry['start_at'][0] + ',' + \
                             dfEventEntry['end_at'][0] + ',' + \
                             aEntertainerFee + ',' + \
-                            '1,\'' + aEntertainerName
+                            '1,\'' + aEntertainerName + \
                             "\');"
         dfVoid = query_db(qEntertainerInsert)
         pass
@@ -55,22 +55,22 @@ def makeBooking(eventID: int, resourceType: str, typeID: int, qty: int):
         if(resourceType == 'Caterer'):
             bookCaterer()
             pass
-        elif(resourceType = 'Entertainment'):
+        elif(resourceType == 'Entertainment'):
             bookEntertainment()
             pass
-        elif(resourceType = 'Equipment'):
+        elif(resourceType == 'Equipment'):
             if(isResourceQtyAvailable):
                 bookEquipment()
             else:
-                qResourceName = "SELECT specification FROM resources WHERE resourcetype = '" + resourceType + "' AND resource ID like '" + resourceID "';"
+                qResourceName = "SELECT specification FROM resources WHERE resourcetype = '" + resourceType + "' AND resource ID like " + str(resourceID) + ";"
                 dfResourceName = functions.query_db(qResourceName)
-                aResourceName = 
+                aResourceName = []
                 st.markdown('The ' + dfResourceName['specification'][0] + ' that you requested is not available in sufficient quantity.')
             pass
-        elif(resourceType = 'Staff'):
+        elif(resourceType == 'Staff'):
             bookStaff()
             pass
-        elif(resourceType = 'Venue'):
+        elif(resourceType == 'Venue'):
             bookVenue()
             pass
         else:
