@@ -4,7 +4,7 @@ import pandas
 import datetime
 import pytz
 import tzlocal
-import bookings as book
+import bookings
 
 user = 'test'
 action = 'test'
@@ -110,7 +110,12 @@ def show():
 
         selectedResourceType = st.selectbox('Select a type of resource for which you would like to make a booking:', dfBookableResources['enumlabel'])
 
-        qAvailableResour
+        temp = {'eventid': [1], 'date': ['2021-12-14'], 'start_at': ['2021-12-14 01:00:00-00'], 'end_at': ['2021-12-13 23:00:00-00']}
+        df = pandas.DataFrame(data=temp)
+        isIt, data = bookings.isResourceAvailable('Entertainment', 5, df)
+
+        st.write(isIt)
+        st.write(data)
 
     elif(action == "Cancel an Event"):
         # fetch the list of all events
