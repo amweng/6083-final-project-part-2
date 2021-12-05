@@ -4,6 +4,7 @@ import pandas
 import datetime
 import pytz
 import tzlocal
+import bookings as book
 
 user = 'test'
 action = 'test'
@@ -18,12 +19,6 @@ def getUserName(userEmail: str, users: pandas.DataFrame):
     dfUserRow = user[user.email.isin([userEmail])]
     aUserName = dfUserRow['name'].tolist()[0]
     return aUserName
-
-def pd_timestamp_to_dt_with_tz(pd_ts):
-    dt = pd_ts.to_pydatetime()
-    ttz = dt.astimezone(datetime.datetime.now(datetime.timezone.utc).astimezone().tzinfo)
-    timetz = ttz.strftime('%m-%d-%Y %H:%M:%S%z')
-    return str(timetz)
 
 def show():
     qEventPlanners = "SELECT email, first_name, last_name FROM event_planners;"
@@ -42,17 +37,39 @@ def show():
     if(action == "Make a New Event"):
         pass
     elif(action == "View Your Events"):
+        # Find all events possessed by the selected user
         qFetchEvents = "SELECT * FROM events E WHERE E.event_planner_email LIKE '" + user + \
             "' ORDER BY date, start_at;"
         dfEventsAll = functions.query_db(qFetchEvents)
         
         # Give the user a quick glance of all their created events
-        st.markdown("### Events planned by " + userName + ":")
+        st.markdown("### All events planned by " + userName + ":")
         dfEventsSurvey = dfEventsAll[['date', 'start_at', 'end_at', 'event_name']]
         for idx in range(len(dfEventsSurvey['start_at'])):
-            st.write(dfEventsSurvey['start_at'][idx])
-            dfEventsSurvey['start_at'][idx] = pd_timestamp_to_dt_with_tz(dfEventsSurvey['start_at'][idx])
-            st.table(dfEventsSurvey)
+            dfEventsSurvey['start_at'][idx] = functions.pd_timestamp_to_dt_with_tz(dfEventsSurvey['start_at'][idx])
+            dfEventsSurvey['end_at'][idx] = dfEventsSurvey['end_at'][idx].isoformat()
+        st.table(dfEventsSurvey)
+
+        # EVENT SELECT BOX
+        # fetch the list of all events
+        qFetchEvents = "SELECT * FROM events E WHERE E.event_planner_email LIKE '" + user + \
+            "' ORDER BY date, start_at;"
+        dfEventsAll = functions.query_db(qFetchEvents)
+
+        if(dfEventsAll.empty):
+            st.markdown("Hello, new user!  Select 'Make an Event' to create a new event!")
+
+        # create a callable dictionary of name:id pairs for the select box
+        dfEventSelect = dfEventsAll[['event_name', 'eventid']]
+        aEventSelectName = dfEventSelect['event_name'].tolist()
+        aEventSelectID = dfEventSelect['eventid'].tolist()
+        dic = dict(zip(aEventSelectID, aEventSelectName))
+        selectedEvent = st.selectbox('Select an event for which you would like to view the details:', aEventSelectID, format_func=lambda x: dic[x])
+
+        # use the selected event to extract the event row for the selected event
+        qSelectedDetails = "SELECT * FROM events E WHERE E.event_planner_email LIKE '" + user + \
+                            "' AND eventid = " + str(selectedEvent) + " ORDER BY date, start_at;"
+        dfSelectedEvent = functions.query_db(qSelectedDetails)
 
         # For each event, display the location details
         st.markdown('### Locations for all events:')
@@ -62,18 +79,58 @@ def show():
         st.table(dfEventLocations)
 
     elif(action == "Book Resources"):
+        # EVENT SELECT BOX
+        # fetch the list of all events
         qFetchEvents = "SELECT * FROM events E WHERE E.event_planner_email LIKE '" + user + \
             "' ORDER BY date, start_at;"
         dfEventsAll = functions.query_db(qFetchEvents)
-        dfEventSelect = dfEventsAll['date'] + dfEventsAll['event_name']
-        aEventSelect = []
-        for idx in range(len(dfEventsSelect['date'])):
-            aEventSelect.append(dfEventSelect['date'][idx].isoformat() + ' -- ' + dfEventSelect['event_name'][idx])
 
-        selectedEvent = st.selectbox('Select an event for which you would like to make a booking:', aEventSelect)
+        if(dfEventsAll.empty):
+            st.markdown("Hello, new user!  Select 'Make an Event' to create a new event!")
 
+        # create a callable dictionary of name:id pairs for the select box
+        dfEventSelect = dfEventsAll[['event_name', 'eventid']]
+        aEventSelectName = dfEventSelect['event_name'].tolist()
+        aEventSelectID = dfEventSelect['eventid'].tolist()
+        dic = dict(zip(aEventSelectID, aEventSelectName))
+        selectedEvent = st.selectbox('Select an event for which you would like to make a booking:', aEventSelectID, format_func=lambda x: dic[x])
+
+        # use the selected event to extract the event row for the selected event
         qSelectedDetails = "SELECT * FROM events E WHERE E.event_planner_email LIKE '" + user + \
-                           "' AND ORDER BY date, start_at;"
+                            "' AND eventid = " + str(selectedEvent) + " ORDER BY date, start_at;"
+        dfSelectedEvent = functions.query_db(qSelectedDetails)
+        
+        st.write(dfSelectedEvent)
+
+        # Get list of all bookable resources
+        qBookableResources = "SELECT pg_type.typname, pg_enum.enumlabel FROM pg_enum, pg_type \
+                             WHERE pg_type.oid = pg_enum.enumtypid AND pg_type.typname like 'resourcetype' \
+                             ORDER BY pg_enum.enumlabel; "
+        dfBookableResources = functions.query_db(qBookableResources)
+
+        selectedResourceType = st.selectbox('Select a type of resource for which you would like to make a booking:', dfBookableResources['enumlabel'])
+
+        qAvailableResour
+
     elif(action == "Cancel an Event"):
+        # fetch the list of all events
+        qFetchEvents = "SELECT * FROM events E WHERE E.event_planner_email LIKE '" + user + \
+            "' ORDER BY date, start_at;"
+        dfEventsAll = functions.query_db(qFetchEvents)
+
+        if(dfEventsAll.empty):
+            st.markdown("Hello, new user!  Select 'Make an Event' to create a new event!")
+
+        # create a callable dictionary of name:id pairs for the select box
+        dfEventSelect = dfEventsAll[['event_name', 'eventid']]
+        aEventSelectName = dfEventSelect['event_name'].tolist()
+        aEventSelectID = dfEventSelect['eventid'].tolist()
+        dic = dict(zip(aEventSelectID, aEventSelectName))
+        selectedEvent = st.selectbox('Select an event you would like to cancel:', aEventSelectID, format_func=lambda x: dic[x])
+
+        # use the selected event to extract the event row for the selected event
+        qSelectedDetails = "SELECT * FROM events E WHERE E.event_planner_email LIKE '" + user + \
+                            "' AND eventid = " + str(selectedEvent) + " ORDER BY date, start_at;"
+        dfSelectedEvent = functions.query_db(qSelectedDetails)
         pass
     
