@@ -1,0 +1,12 @@
+Equipment,29,Equipment,33,2,Lighting set req. power supply
+Equipment,29,Equipment,34,1,Lighting set req. light board
+Equipment,35,Equipment,1,1,Fog machine req. extension cord
+Equipment,36,Equipment,1,1,Haze machine req. extension cord
+Equipment,27,Equipment,33,1,Amplifier req. power supply
+Equipment,27,Equipment,28,1,Amplifier req. sound board
+Equipment,26,Equipment,27,1,Microphone req. amplifiier
+Equipment,26,Equipment,28,1,Microphone req. sound board
+Equipment,28,Equipment,33,1,Sound board req. power supply
+Equipment,30,Equipment,31,1,Projector req. screen
+Equipment,30,Equipment,1,1,Projector req. extension cord
+Equipment,33,Equipment,2,1,Power supply req. surge protector
