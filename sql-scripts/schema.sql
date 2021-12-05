@@ -128,7 +128,7 @@ CREATE TABLE Resources_Equipment (
 CREATE TABLE Resources_Venues (
 	resourceType		resourceType NOT NULL,
 	typeID			integer NOT NULL,
-	name			varchar(128) UNIQUE,
+	name			varchar(128) UNIQUE NOT NULL,
 	fee			numeric(16,2) DEFAULT 0.00 NOT NULL,
 	address			varchar(128) NOT NULL,
 	roomNum			varchar(32),
