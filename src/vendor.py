@@ -1,3 +1,4 @@
+import pandas as pd
 import streamlit as st
 import functions
 import datetime
@@ -8,12 +9,13 @@ def show():
     '### This was just an attempt at getting some kind of chart to render.'
     '### Also to get multiple pages up and running!'
 
-    local_date_time = datetime.datetime.now()
-    local_time = local_date_time.time()
+    ts = pd.Timestamp.now()
+    st.write(ts)
+    st.write(type(ts))
 
-    time_str = functions.time_to_time_with_tz(local_time)
+    time_str = functions.pd_timestamp_to_dt_with_tz(ts)
     st.write(time_str)
 
-    query = "SELECT * FROM resources ORDER BY specification;"
+    query = "SELECT * FROM events ORDER BY eventID;"
     df = functions.query_db(query)
     st.table(df)

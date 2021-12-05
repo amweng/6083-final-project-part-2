@@ -74,8 +74,8 @@ def query_db(sql: str):
 
     return df
 
-def time_to_time_with_tz(t):
-    tz = pytz.timezone(tzlocal.get_localzone().zone)
-    dttz = datetime.datetime.combine(datetime.datetime.today(), t).astimezone(tz)
-    timetz = dttz.strftime('%H:%M:%S%z')
+def pd_timestamp_to_dt_with_tz(pd_ts):
+    dt = pd_ts.to_pydatetime()
+    ttz = dt.astimezone(datetime.datetime.now(datetime.timezone.utc).astimezone().tzinfo)
+    timetz = ttz.strftime('%m-%d-%Y %H:%M:%S%z')
     return str(timetz)
