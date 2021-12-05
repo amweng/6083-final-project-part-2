@@ -12,8 +12,8 @@ import matplotlib.pyplot as plt
 import tzlocal
 
 
-@st.cache
-def get_config(filename="database.ini",
+# @st.cache
+def get_config(filename="database-local.ini",
                section="postgres"):
     # Establishes the connection with the database based on the parameters
     # within the database.ini file.  You should update these parameters such
@@ -73,6 +73,67 @@ def query_db(sql: str):
     df = pd.DataFrame(data=data, columns=column_names)
 
     return df
+
+def query_db_no_cache(sql: str):
+    # Function is taken from the in-class demo on launching a streamlit
+    # application.  Takes in an SQL command in the form of a string and
+    # returns a pandas dataframe containing the data returned by the
+    # database.
+
+    # print(f"Running query_db(): {sql}")
+
+    db_info = get_config()
+
+    # Connect to an existing database
+    conn = psycopg2.connect(**db_info)
+
+    # Open a cursor to perform database operations
+    cur = conn.cursor()
+
+    # Execute a command: this creates a new table
+    cur.execute(sql)
+
+    # Obtain data
+    data = cur.fetchall()
+
+    column_names = [desc[0] for desc in cur.description]
+
+    # Make the changes to the database persistent
+    conn.commit()
+
+    # Close communication with the database
+    cur.close()
+    conn.close()
+
+    df = pd.DataFrame(data=data, columns=column_names)
+
+    return df
+
+def execute_db(sql: str):
+    # Function is taken from the in-class demo on launching a streamlit
+    # application.  Takes in an SQL command in the form of a string and
+    # returns a pandas dataframe containing the data returned by the
+    # database.
+
+    # print(f"Running query_db(): {sql}")
+
+    db_info = get_config()
+
+    # Connect to an existing database
+    conn = psycopg2.connect(**db_info)
+
+    # Open a cursor to perform database operations
+    cur = conn.cursor()
+
+    # Execute a command: this creates a new table
+    cur.execute(sql)
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return 0
+
 
 def pd_timestamp_to_dt_with_tz(pd_ts):
     dt = pd_ts.to_pydatetime()
