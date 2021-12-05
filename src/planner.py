@@ -100,8 +100,6 @@ def show():
                             "' AND eventid = " + str(selectedEvent) + " ORDER BY date, start_at;"
         dfSelectedEvent = functions.query_db(qSelectedDetails)
         
-        st.write(dfSelectedEvent)
-
         # Get list of all bookable resources
         qBookableResources = "SELECT pg_type.typname, pg_enum.enumlabel FROM pg_enum, pg_type \
                              WHERE pg_type.oid = pg_enum.enumtypid AND pg_type.typname like 'resourcetype' \
@@ -109,13 +107,19 @@ def show():
         dfBookableResources = functions.query_db(qBookableResources)
 
         selectedResourceType = st.selectbox('Select a type of resource for which you would like to make a booking:', dfBookableResources['enumlabel'])
-
-        temp = {'eventid': [1], 'date': ['2021-12-14'], 'start_at': ['2021-12-14 01:00:00-00'], 'end_at': ['2021-12-13 23:00:00-00']}
-        df = pandas.DataFrame(data=temp)
-        isIt, data = bookings.isResourceAvailable('Entertainment', 5, df)
-
-        st.write(isIt)
-        st.write(data)
+        
+        ## Here is a list of available resources of that type
+        dfAllAvailable = bookings.getAllAvailable(selectedResourceType, dfSelectedEvent)
+        
+        if(selectedResourceType == 'Caterer'):
+            dfAllAvailableDisplay = dfAllAvailable[['name', 'fee']]
+            st.markdown('#### Here is a list of all available caterers for your event:')
+            st.table(dfAllAvailableDisplay)
+        elif(selectedResourceType == 'Entertainment'):
+            dfAllAvailableDisplay = dfAllAvailable[['name', 'genre', 'contentrating', 'fee']]
+            st.markdown('#### Here is a list of all available enteratiners for your event:')
+            st.table(dfAllAvailableDisplay)
+        
 
     elif(action == "Cancel an Event"):
         # fetch the list of all events

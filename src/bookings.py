@@ -18,14 +18,32 @@ def isResourceAvailable(resourceType: str, resourceID: int, timeWindow: pandas.D
             return False
     return True
 
-def getAllAvailable(resourceType: str, resourceID: int, timeWindow: pandas.DataFrame):
-    qIsOverlapping = "SELECT ('" + str(timeWindow['start_at'][0]) + "','" + str(timeWindow['end_at'][0]) + "') " + \
-                     "OVERLAPS (B.start_at, B.end_at), B.* FROM bookings B " + \
-                     "WHERE B.resourcetype = '" + str(resourceType) + "' " + ";"
-
-    dfAllAvailable = functions.query_db(qIsOverlapping)
-    dfAllAvailable = dfAllAvailable[dfAllAvailable['overlaps'] != True]
-    return dfAllAvailable
+def getAllAvailable(resourceType: str, timeWindow: pandas.DataFrame):
+    
+    if(resourceType == 'Caterer'):
+        resourcesTable = 'resources_caterers'
+    elif(resourceType == 'Entertainment'):
+        resourcesTable = 'resources_entertainment'
+    elif(resourceType == 'Equipment'):
+        resourcesTable = 'resources_equipment'
+    elif(resourceType == 'Staff'):
+        resourcesTable = 'resources_staff'
+    elif(resourceType == 'Venue'):
+        resourcesTable = 'resources_venues'
+    else:
+        resourcesTable = "INVALID_TYPE"
+    
+    qAllAvailable = "SELECT * " + \
+                   "FROM " + resourcesTable + \
+                   " WHERE typeid NOT IN " + \
+                   "(SELECT typeid FROM " + \
+                   "(SELECT ('" + str(timeWindow['start_at'][0]) + "','" + str(timeWindow['end_at'][0]) +"')" + \
+                   "OVERLAPS (B.start_at, B.end_at), B.typeid " + \
+                   "FROM bookings B " + \
+                   "WHERE B.resourcetype = '" + resourceType + "') B " + \
+                   "WHERE B.overlaps = 'true');"
+    
+    return functions.query_db(qAllAvailable)
 
 def isResourceQtyAvailable(resourceType: str, resourceID: int, timeWindow: pandas.DataFrame, qty: int):
     # Queries the resources table and bookings table to compute math over whether there exists a sufficient quantity for booking
