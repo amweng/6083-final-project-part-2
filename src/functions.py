@@ -2,13 +2,18 @@ import streamlit as st
 import psycopg2
 from configparser import ConfigParser
 import pandas as pd
+import datetime as datetime
+import pytz
 import numpy as np
 import matplotlib.pyplot as plt
 
 
 # Function Definitions
+import tzlocal
+
+
 @st.cache
-def get_config(filename="database.ini",
+def get_config(filename="database-local.ini",
                section="postgres"):
     # Establishes the connection with the database based on the parameters
     # within the database.ini file.  You should update these parameters such
@@ -68,3 +73,9 @@ def query_db(sql: str):
     df = pd.DataFrame(data=data, columns=column_names)
 
     return df
+
+def time_to_time_with_tz(t):
+    tz = pytz.timezone(tzlocal.get_localzone().zone)
+    dttz = datetime.datetime.combine(datetime.datetime.today(), t).astimezone(tz)
+    timetz = dttz.strftime('%H:%M:%S%z')
+    return str(timetz)
