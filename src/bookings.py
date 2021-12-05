@@ -20,10 +20,11 @@ def isResourceAvailable(resourceType: str, resourceID: int, timeWindow: pandas.D
 
 def getAllAvailable(resourceType: str, resourceID: int, timeWindow: pandas.DataFrame):
     qIsOverlapping = "SELECT ('" + str(timeWindow['start_at'][0]) + "','" + str(timeWindow['end_at'][0]) + "') " + \
-                     "OVERLAPS (B.start_at, B.end_at) as Available, B.* FROM bookings B " + \
+                     "OVERLAPS (B.start_at, B.end_at), B.* FROM bookings B " + \
                      "WHERE B.resourcetype = '" + str(resourceType) + "' " + ";"
 
     dfAllAvailable = functions.query_db(qIsOverlapping)
+    dfAllAvailable = dfAllAvailable[dfAllAvailable['overlaps'] != True]
     return dfAllAvailable
 
 def isResourceQtyAvailable(resourceType: str, resourceID: int, timeWindow: pandas.DataFrame, qty: int):
