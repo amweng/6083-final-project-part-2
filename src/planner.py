@@ -38,9 +38,18 @@ def show():
         dfEventsAll = functions.query_db(qFetchEvents)
         
         # Give the user a quick glance of all their created events
-        st.markdown("## Events planned by " + userName + ":")
+        st.markdown("### Events planned by " + userName + ":")
+        fmt = "%H:%M:%S"
         dfEventsSurvey = dfEventsAll[['date', 'start_at', 'end_at', 'event_name']]
-        st.write(dfEventsSurvey)
+        st.table(dfEventsSurvey)
+
+        # For each event, display the location details
+        st.markdown('### Locations for all events:')
+        st.markdown('### REQUIRES THAT BOOKINGS BE COMPLETED')
+        qEventLocations = "SELECT E.date, E.start_at, E.end_at, V.address, V.roomNum FROM events E, resources_venues V WHERE E.location like V.address ORDER BY E.date, E.start_at;"
+        dfEventLocations = functions.query_db(qEventLocations)
+        st.table(dfEventLocations)
+
     elif(action == "Book Resources"):
         pass
     elif(action == "Cancel an Event"):
