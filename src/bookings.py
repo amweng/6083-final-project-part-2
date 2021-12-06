@@ -51,10 +51,34 @@ def isResourceQtyAvailable(resourceType: str, resourceID: int, timeWindow: panda
     # Assumes timeWindow is a dataframe of the format (eventID, date, start_at, end_at) from events table
     return True
 
-def makeBooking(eventID: int, resourceType: str, typeID: int, qty: int):
-    qEventEntry = "SELECT E.eventid, E.date, E.start_at, E.end_at FROM events E WHERE E.eventid = " + eventID + ";"
-    dfEventEntry = query_db(qEventEntry)
+def isStaffAvailableQualified(qualificationType: str, timeWindow: pandas.DataFrame):
+    if(qualificationType == 'None (ie, General Labourer)'):
+        qQualifiedAvailableStaff = "SELECT * " + \
+                                "FROM resources_staff S, qualifications_have Q " + \
+                                "WHERE S.typeid NOT IN " + \
+                                "(SELECT typeid FROM " + \
+                                "(SELECT ('" + str(timeWindow['start_at'][0]) + "','" + str(timeWindow['end_at'][0]) +"')" + \
+                                "OVERLAPS (B.start_at, B.end_at), B.typeid " + \
+                                "FROM bookings B " + \
+                                "WHERE B.resourcetype = 'Staff') B " + \
+                                "WHERE B.overlaps = 'true') " + \
+                                "AND S.email like Q.staff_email;"
+    else:
+        qQualifiedAvailableStaff = "SELECT * " + \
+                                "FROM resources_staff S, qualifications_have Q " + \
+                                "WHERE S.typeid NOT IN " + \
+                                "(SELECT typeid FROM " + \
+                                "(SELECT ('" + str(timeWindow['start_at'][0]) + "','" + str(timeWindow['end_at'][0]) +"')" + \
+                                "OVERLAPS (B.start_at, B.end_at), B.typeid " + \
+                                "FROM bookings B " + \
+                                "WHERE B.resourcetype = 'Staff') B " + \
+                                "WHERE B.overlaps = 'true') " + \
+                                "AND S.email like Q.staff_email " + \
+                                "AND Q.qualification = '" + qualificationType + "';"
+    
+    return functions.query_db(qQualifiedAvailableStaff)
 
+def makeBooking(dfSelectedEvent: pandas.DataFrame, dfSelectedResource: pandas.DataFrame, qty: int):
     def bookCaterer(dfEventEntry: pandas.DataFrame, resourceType: str, resourceID: int, qty: int):
         qCatererDetails = "" #DO WE BOOK THE CATERER OR THE MENU (AND THE CATERER JUST COMES ALONG?)
         pass
@@ -85,15 +109,18 @@ def makeBooking(eventID: int, resourceType: str, typeID: int, qty: int):
         pass
 
     def bookVenue():
-        pass
-
-    if(isResourceAvailable(resourceType, resourceID, dfEventEntry)):
+        qVenueInsert = "INSERT INTO bookings VALUES (" + str(dfSelectedEvent['eventid'][0]) + ",'" + resourceType + "'," + str(typeID) + "," + \
+                        str(dfSelectedEvent['start_at'][0]) + "," + str(dfSelectedEvent['end_at'][0]) + "," + str(dfSelectedResource['fee'][0]) + "," + \
+                        "1, '" + str(dfSelectedResource['name'][0]) + "');"
+        dfVoid = query_db(qVenueInsert)
+        
+    resourceType = str(dfSelectedResource['resourcetype'][0])
+    resourceID = str(dfSelectedResource['typeid'][0])
+    if(isResourceAvailable(resourceType, resourceID, dfSelectedEvent)):
         if(resourceType == 'Caterer'):
             bookCaterer()
-            pass
         elif(resourceType == 'Entertainment'):
             bookEntertainment()
-            pass
         elif(resourceType == 'Equipment'):
             if(isResourceQtyAvailable):
                 bookEquipment()
@@ -102,13 +129,10 @@ def makeBooking(eventID: int, resourceType: str, typeID: int, qty: int):
                 dfResourceName = functions.query_db(qResourceName)
                 aResourceName = []
                 st.markdown('The ' + dfResourceName['specification'][0] + ' that you requested is not available in sufficient quantity.')
-            pass
         elif(resourceType == 'Staff'):
             bookStaff()
-            pass
         elif(resourceType == 'Venue'):
             bookVenue()
-            pass
         else:
             st.text('Please select a valid booking type.\n \
             Ensure your selection comes from the following, case-sensitive list: \n\
