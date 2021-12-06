@@ -6,42 +6,23 @@ import time
 
 
 def show():
-    '### This was just an attempt at getting some kind of chart to render.'
-    '### Also to get multiple pages up and running!'
+
+
 
     aVendorType = ["Entertainment", "Caterers", "Venues"]
     vendor_type = st.sidebar.selectbox("Which vendor type applies to you?", aVendorType)
 
-
-
-
     if (vendor_type == "Entertainment"):
+        st.write("# Entertainment Portal")
         show_entertainment_view()
 
     if (vendor_type == "Caterers"):
+        st.write("# Caterer Portal")
         show_caterer_view()
 
-
     if (vendor_type == "Venues"):
-
+        st.write("# Venue Portal")
         show_venue_view()
-
-        q_vendors = "SELECT resourceType, typeid, name, address FROM resources_" + vendor_type + ";"
-        df_vendors = functions.query_db(q_vendors)
-
-        st.table(df_vendors)
-
-        a_vendor_names = df_vendors['name'].tolist()
-
-        a_vendor_ids = df_vendors['typeid'].tolist()
-
-        vendor_name = st.sidebar.selectbox("Who are you?", a_vendor_names)
-        resource_type = vendor_type
-        type_id = a_vendor_ids[a_vendor_names.index(vendor_name)]
-
-        st.write('### My requirements')
-        st.write('### Add requirement')
-        st.write('### My menus')
 
 
 def show_caterer_view():
@@ -57,10 +38,12 @@ def show_caterer_view():
     type_id = a_vendor_ids[a_vendor_names.index(vendor_name)]
 
     st.write('### My menus')
-    q_menus_accommodations = "SELECT m.name, m.description, a.accomodation FROM menus_offered m, menus_accommodate a " +  \
-                "WHERE m.caterer_name = \'" + vendor_name + "\' AND m.menuid = a.menuid;"
-    df_menus_accommodations = functions.query_db(q_menus_accommodations)
-    st.table(df_menus_accommodations)
+    q_menus_accom = "SELECT m.name, m.description, a.accommodation FROM menus_offered m LEFT JOIN menus_accommodate a "\
+                    + "ON m.menuid = a.menuid WHERE m.caterer_name = \'" + vendor_name.replace("'", "''") + "\';"
+    df_menus_accom = functions.query_db(q_menus_accom)
+
+    st.dataframe(df_menus_accom.rename(
+        columns={'name': 'Menu', 'description': 'Description', 'accommodation': 'Dietary Accommodation'}))
 
     show_requirements_section(resource_type, type_id)
 
@@ -77,10 +60,10 @@ def show_entertainment_view():
     a_vendor_names = df_vendors['name'].tolist()
     a_vendor_ids = df_vendors['typeid'].tolist()
     vendor_name = st.sidebar.selectbox("Who are you?", a_vendor_names)
-    resource_type = vendor_type
     type_id = a_vendor_ids[a_vendor_names.index(vendor_name)]
 
     show_requirements_section(resource_type, type_id)
+
 
 def show_venue_view():
     vendor_type = "Venues"
@@ -101,6 +84,7 @@ def show_venue_view():
 
 
 def show_requirements_section(resource_type, type_id):
+
     st.write('### My requirements')
 
     q_required = "SELECT e.name, r.numRequired, r.specification FROM resources_require r," \
@@ -108,8 +92,13 @@ def show_requirements_section(resource_type, type_id):
                  + str(type_id) + " AND r.r2typeID = e.typeID;"
 
     # use a non-cached query function for this - we want to see our updates.
-    df_required = functions.query_db_no_cache(q_required)
-    required_table = st.table(df_required)
+    df_required = pd.DataFrame(columns=['name', 'numrequired', 'specification'])
+    df_required = df_required.append(functions.query_db_no_cache(q_required))
+
+    if st.button("Refresh List"):
+        st.dataframe(df_required.rename(columns={'name': 'Equipment', 'numrequired': 'Quantity', 'specification': 'Description'}))
+    else:
+        st.dataframe(df_required.rename(columns={'name': 'Equipment', 'numrequired': 'Quantity', 'specification': 'Description'}))
 
     st.write('#### Add requirement')
 
@@ -162,7 +151,10 @@ def show_requirements_section(resource_type, type_id):
             # append a row to our DF since we can't count on an instantaneous update
             data = [[equipment, quantity, specification]]
             row = pd.DataFrame(data, columns=['name', 'numrequired', 'specification'])
-            required_table.add_rows(row)
+
+            df_required = df_required.append(row)
 
             # use a non-cached execution function to execute our insert statment
             functions.execute_db(q_require)
+
+    return

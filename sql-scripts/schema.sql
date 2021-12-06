@@ -180,10 +180,10 @@ CREATE TABLE Menus_Offered (
 );
 
 CREATE TABLE Menus_Accommodate (
-	accomodation	varchar(128),
+	accommodation	varchar(128),
 	menuID		integer,
 	caterer_name	varchar(128),
-	PRIMARY KEY (accomodation, caterer_name, menuID),
+	PRIMARY KEY (accommodation, caterer_name, menuID),
 	FOREIGN KEY (menuID) REFERENCES Menus_Offered(menuID) ON DELETE CASCADE,
 	FOREIGN KEY (caterer_name) REFERENCES Resources_Caterers(name)
 );

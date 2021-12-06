@@ -11,13 +11,13 @@ import vendor
 import manager
 
 # Page Contents
-page = st.sidebar.selectbox("Navigation panel:", ["planner", "vendor", "manager"])
+page = st.sidebar.selectbox("Navigation panel:", ["Planner", "Vendor", "Manager"])
 
-if page == "planner":
+if page == "Planner":
     planner.show()
 
-elif page == "vendor":
+elif page == "Vendor":
     vendor.show()
 
-elif page == "manager":
+elif page == "Manager":
     manager.show()

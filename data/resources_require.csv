@@ -10,3 +10,15 @@ Equipment,28,Equipment,33,1,Sound board req. power supply
 Equipment,30,Equipment,31,1,Projector req. screen
 Equipment,30,Equipment,1,1,Projector req. extension cord
 Equipment,33,Equipment,2,1,Power supply req. surge protector
+Caterer,1,Equipment,5,2,2 propane needed for big stove
+Caterer,1,Equipment,3,1,need big stove to cook good food
+Caterer,1,Equipment,7,1,cookware
+Caterer,3,Equipment,20,1,fridge needed
+Caterer,3,Equipment,13,2,lots of salad plates
+Caterer,15,Equipment,21,1,only a refrigerated truck can carry all our ice cream.
+Caterer,15,Equipment,13,1,small dishes
+Caterer,6,Equipment,13,1,small dishes
+Caterer,6,Equipment,9,1,small cookware
+Caterer,12,Equipment,5,2,need propane for pizza oven
+Caterer,16,Equipment,5,2,need propane for bbq
+Caterer,16,Equipment,23,1,table for meat prep
