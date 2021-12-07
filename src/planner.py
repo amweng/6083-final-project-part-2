@@ -29,7 +29,7 @@ def show():
     user = st.sidebar.selectbox("Who are you?", aEventPlannerNames)
     userName = user
 
-    aEventPlannerActions = ["Make a New Event", "View Your Events", "Book Resources", "Cancel an Event"]
+    aEventPlannerActions = ["Make a New Event", "View Your Events", "Book Resources", "Cancel Resource Booking", "Cancel an Event"]
     action = st.sidebar.selectbox("What do you want to do?", aEventPlannerActions)
 
     user = getUserID(user, dfEventPlannerNames)
@@ -79,6 +79,7 @@ def show():
         st.table(dfEventLocations)
 
     elif(action == "Book Resources"):
+        st.markdown("# Make a Booking")
         # EVENT SELECT BOX
         # fetch the list of all events
         qFetchEvents = "SELECT * FROM events E WHERE E.event_planner_email LIKE '" + user + \
@@ -99,6 +100,19 @@ def show():
         qSelectedDetails = "SELECT * FROM events E WHERE E.event_planner_email LIKE '" + user + \
                             "' AND eventid = " + str(selectedEvent) + " ORDER BY date, start_at;"
         dfSelectedEvent = functions.query_db(qSelectedDetails)
+
+        # Get the list of all resources already booked for this event
+        qBookedResources = "SELECT B.description, B.resourcetype, B.cost, B.start_at, B.end_at FROM bookings B WHERE eventid = " + str(dfSelectedEvent['eventid'][0]) + ";"
+        dfBookedResources = pandas.DataFrame(columns=['description', 'resourcetype', 'cost', 'start_at', 'end_at'])
+        dfBookedResources = dfBookedResources.append(functions.query_db_no_cache(qBookedResources))
+
+        st.markdown("### List of current bookings for this event:")
+        if st.button("Refresh List"):
+            st.dataframe(dfBookedResources)
+        else:
+            st.dataframe(dfBookedResources)
+
+
         
         # Get list of all bookable resources
         qBookableResources = "SELECT pg_type.typname, pg_enum.enumlabel FROM pg_enum, pg_type \
@@ -160,16 +174,51 @@ def show():
             st.write(dfSelectedResourceDetails)
 
             st.markdown("##### Would you like to book this resource?")
-            if st.button('Reserve this Resource!', on_click=bookings.makeBooking(dfSelectedEvent, dfSelectedResourceDetails, 1)):
+            if st.button('Reserve this Resource!'):
                 qVenueInsert = "INSERT INTO bookings VALUES (" + str(dfSelectedEvent['eventid'][0]) + ",'" + str(dfSelectedResourceDetails['resourcetype'][0]) + "'," + str(dfSelectedResourceDetails['typeid'][0]) + ",'" + \
                                 str(dfSelectedEvent['start_at'][0]) + "','" + str(dfSelectedEvent['end_at'][0]) + "'," + str(dfSelectedResourceDetails['fee'][0]) + "," + \
                                 "1, '" + str(dfSelectedResourceDetails['name'][0]) + "');"
-                functions.query_db(qVenueInsert)
+                functions.execute_db(qVenueInsert)
         else:
             "Something has gone horribly wrong and I'll probably die!"
 
-        
+    elif(action == "Cancel Resource Booking"):
+        # fetch the list of all events
+        qFetchEvents = "SELECT * FROM events E WHERE E.event_planner_email LIKE '" + user + \
+            "' ORDER BY date, start_at;"
+        dfEventsAll = functions.query_db(qFetchEvents)
 
+        if(dfEventsAll.empty):
+            st.markdown("Hello, new user!  Select 'Make an Event' to create a new event!")
+
+        # create a callable dictionary of name:id pairs for the select box
+        dfEventSelect = dfEventsAll[['event_name', 'eventid']]
+        aEventSelectName = dfEventSelect['event_name'].tolist()
+        aEventSelectID = dfEventSelect['eventid'].tolist()
+        dic = dict(zip(aEventSelectID, aEventSelectName))
+        selectedEvent = st.selectbox('Select an event you would like to cancel:', aEventSelectID, format_func=lambda x: dic[x])
+
+        # use the selected event to extract the event row for the selected event
+        qSelectedDetails = "SELECT * FROM events E WHERE E.event_planner_email LIKE '" + user + \
+                            "' AND eventid = " + str(selectedEvent) + " ORDER BY date, start_at;"
+        dfSelectedEvent = functions.query_db(qSelectedDetails)
+        
+        # Get the list of all resources already booked for this event
+        qBookedResources = "SELECT B.description, B.resourcetype, B.typeid, B.cost, B.start_at, B.end_at FROM bookings B WHERE eventid = " + str(dfSelectedEvent['eventid'][0]) + ";"
+        dfBookedResources = pandas.DataFrame(columns=['description', 'resourcetype', 'cost', 'start_at', 'end_at'])
+        dfBookedResources = dfBookedResources.append(functions.query_db_no_cache(qBookedResources))
+
+        st.markdown("### List of current bookings for this event:")
+        if st.button("Refresh List"):
+            st.dataframe(dfBookedResources)
+        else:
+            st.dataframe(dfBookedResources)
+
+        st.markdown("# Got to here and had to stop for the night.  Smoother to select type to cancel, then query up list, then select.")
+        aBookedResourceSelectName = dfBookedResources['description'].tolist()
+        aBookedResourceSelectID = dfBookedResources['typeid'].tolist()
+        aBookedResourceSelectType = dfBookedResources['resourcetype'].tolist()
+        dictBookedResourceSelect = dict(zip(zip(aBok)))
     elif(action == "Cancel an Event"):
         # fetch the list of all events
         qFetchEvents = "SELECT * FROM events E WHERE E.event_planner_email LIKE '" + user + \

@@ -45,6 +45,36 @@ def getAllAvailable(resourceType: str, timeWindow: pandas.DataFrame):
     
     return functions.query_db(qAllAvailable)
 
+def getAllResourceRequirements():
+    # Returns a recursively constructed 'bill of materials' over the resources_require table
+    qResourcesRequire = "WITH RECURSIVE Requires(r1resourcetype, r1typeid, r2resourcetype, r2typeid) as ( \
+	SELECT r1resourcetype, r1typeid, r2resourcetype, r2typeid FROM resources_require \
+	UNION \
+	SELECT 	R.r1resourcetype, R.r1typeid, Q.r2resourcetype, Q.r2typeid \
+	FROM	Requires R, Resources_Require Q \
+	WHERE	R.r2resourcetype = Q.r1resourcetype \
+	AND	R.r2typeid = Q.r1typeid \
+    ) \
+    SELECT * FROM Requires ORDER BY r1resourcetype, r1typeid, r2resourcetype, r2typeid;"
+
+    return functions.query_db_no_cache(qResourcesRequire)
+
+def getRequiredResources(resourceType: str, resourceID: str):
+    qResourceRequires = "WITH RECURSIVE Requires(r1resourcetype, r1typeid, r2resourcetype, r2typeid) as ( \
+	SELECT r1resourcetype, r1typeid, r2resourcetype, r2typeid FROM resources_require \
+	UNION \
+	SELECT 	R.r1resourcetype, R.r1typeid, Q.r2resourcetype, Q.r2typeid \
+	FROM	Requires R, Resources_Require Q \
+	WHERE	R.r2resourcetype = Q.r1resourcetype \
+	AND	R.r2typeid = Q.r1typeid \
+    ) \
+    SELECT * FROM Requires \
+    WHERE r1resourcetype = " + str(resourceType) + " \
+    AND r1typeid = " + str(resourceID) + \
+    " ORDER BY r1resourcetype, r1typeid, r2resourcetype, r2typeid;"
+
+    return functions.query_db_no_cache(qResourceRequires)
+
 def isResourceQtyAvailable(resourceType: str, resourceID: int, timeWindow: pandas.DataFrame, qty: int):
     # Queries the resources table and bookings table to compute math over whether there exists a sufficient quantity for booking
     # Returns a boolean
