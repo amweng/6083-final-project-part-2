@@ -205,6 +205,76 @@ def isStaffAvailableQualified(qualificationType: str, timeWindow: pandas.DataFra
     
     return functions.query_db(qQualifiedAvailableStaff)
 
+def isMandatoryStaffPersonPresent(timeWindow: pandas.DataFrame):
+    qIsStaffPersonPresent = "SELECT CASE WHEN EXISTS ( \
+                                SELECT * \
+                                FROM bookings B \
+                                WHERE resourcetype = 'Staff' \
+                                AND typeid IS NOT NULL \
+                                AND ('" + str(timeWindow['start_at'][0]) + "','" + str(timeWindow['end_at'][0]) + "') \
+                                    OVERLAPS (start_at, end_at)) \
+                            THEN CAST(1 AS BIT) \
+                            ELSE CAST(0 AS BIT) \
+                            END;"
+    if (functions.query_db_no_cache(qIsStaffPersonPresent)['case'][0]):
+        return True
+    else:
+        return False
+
+def isElectricianPresent(timeWindow: pandas.DataFrame):
+    qIsElectricianPresent = "SELECT CASE WHEN EXISTS (\
+                                SELECT * \
+                                FROM bookings B, resources_staff R, qualifications_have Q \
+                                WHERE 	B.resourcetype = 'Staff' \
+                                AND	B.typeid IS NOT NULL \
+                                AND ('" + str(timeWindow['start_at'][0]) + "','" + str(timeWindow['end_at'][0]) + "') \
+                                    OVERLAPS (B.start_at, B.end_at) \
+                                AND	B.typeid = R.typeid \
+                                AND	R.email = Q.staff_email \
+                                AND	Q.qualification = 'Electrical') \
+                            THEN CAST (1 AS BIT) \
+                            ELSE CAST (0 AS BIT) \
+                            END;"
+    if (functions.query_db_no_cache(qIsElectricianPresent)['case'][0]):
+        return True
+    else:
+        return False
+
+def bookRequiredResources(dfEvent: pandas.DataFrame, dfResource: pandas.DataFrame):
+    # This code adapts Andrew's brilliant getVendorEquipmentReq() code into an iterative query for batch insertion
+    # For the attentive reader interested in some specifics, note that the syntax is, broadly, 'INSERT INTO bookings () on conflict do nothing;'
+    # This is because, we adopted the convention that if you already have a resource booked of a needed type, we claim that the
+    # requirement is already satisfied.  Is this true to the real world?  No, but the point we sought to make was that it is
+    # possible to programatically insert data using a recursive bill of materials, and this was accomplished.
+
+    qReqResources2Book = "WITH RECURSIVE Dependencies(r1resourceType, r1typeID, r2resourceType, r2typeID, numRequired, specification) AS (\
+                            SELECT	r1resourceType, r1typeID, r2resourceType, r2typeID, numRequired, specification \
+                            FROM resources_require \
+                            WHERE (r1resourceType, r1typeID) != (r2resourceType, r2typeID) \
+                            UNION \
+                            SELECT D.r1resourceType, D.r1typeID, RR.r2resourceType, RR.r2typeID, RR.numRequired, RR.specification \
+                            FROM Dependencies D, resources_require RR \
+                            WHERE (D.r2resourceType, D.r2typeID) = (RR.r1resourceType, RR.r1typeID) \
+                            AND (D.r1resourceType, D.r1typeID) != (D.r2resourceType, D.r2typeID))    \
+                        INSERT INTO bookings \
+                        SELECT * FROM ( \
+                            SELECT E.eventid, D.r2resourcetype, D.r2typeid, E.start_at, E.end_at, RE.fee as cost, D.numRequired as num, 	RE.name as description \
+                            FROM	events E, dependencies D, resources_equipment RE \
+                            WHERE	E.eventid = 1 \
+                            AND	D.r1resourcetype = 'Equipment' \
+                            AND	D.r1typeid = 29 \
+                            AND	D.r2resourcetype = RE.resourcetype \
+                            AND	RE.typeid = D.r2typeid) AS VD \
+                        WHERE (description, num) IN ( \
+                            SELECT vd.name, MAX(vd.numRequired) \
+                            FROM (SELECT RE.name, D.numRequired \
+                                FROM Dependencies D, resources_equipment RE \
+                                WHERE (D.r2resourcetype, D.r2typeID) = (RE.resourceType, RE.typeID) \
+                                AND D.r1resourceType = RE.resourceType \
+                                AND D.r1typeID = 29) AS VD \
+                            GROUP BY vd.name) ON CONFLICT (eventid, resourcetype, typeid) DO NOTHING;"
+    functions.execute_db(qReqResources2Book)
+
 def makeBooking(dfEvent: pandas.DataFrame, dfResource: pandas.DataFrame, qty: int=1):
     # This booking function expects that the resource has previously passed all checks for availabilty.
     # If a redundant booking occurs, please contact the service deparment immediately.
@@ -215,7 +285,7 @@ def makeBooking(dfEvent: pandas.DataFrame, dfResource: pandas.DataFrame, qty: in
 
         qInsertBooking =   "INSERT INTO bookings VALUES (" + str(dfEvent['eventid'][0]) + ",'" + str(dfResource['resourcetype'][0]) + \
                     "'," + str(dfResource['typeid'][0]) + ",'" + str(dfEvent['start_at'][0]) + "','" + str(dfEvent['end_at'][0]) + \
-                    "'," + str(dfResource['fee'][0]) + "," + str(qty) + ",'" + str(dfResource['name'][0]) + "');"
+                    "'," + str(dfResource['fee'][0]) + "," + str(qty) + ",'" + str(dfResource['name'][0]) + "')  ON CONFLICT (eventid, resourcetype, typeid) DO NOTHING;"
         functions.execute_db(qInsertBooking)
 
         qModifyEventListing = "UPDATE events SET location = '" + str(dfResource['address'][0]) + "' WHERE eventid = " + str(dfEvent['eventid'][0]) + ";"
@@ -223,6 +293,7 @@ def makeBooking(dfEvent: pandas.DataFrame, dfResource: pandas.DataFrame, qty: in
     else:
         qInsertBooking =   "INSERT INTO bookings VALUES (" + str(dfEvent['eventid'][0]) + ",'" + str(dfResource['resourcetype'][0]) + \
                     "'," + str(dfResource['typeid'][0]) + ",'" + str(dfEvent['start_at'][0]) + "','" + str(dfEvent['end_at'][0]) + \
-                    "'," + str(dfResource['fee'][0]) + "," + str(qty) + ",'" + str(dfResource['name'][0]) + "');"
+                    "'," + str(dfResource['fee'][0]) + "," + str(qty) + ",'" + str(dfResource['name'][0]) + "')  ON CONFLICT (eventid, resourcetype, typeid) DO NOTHING;"
         functions.execute_db(qInsertBooking)
+        bookRequiredResources(dfEvent, dfResource)
 
