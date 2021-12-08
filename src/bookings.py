@@ -117,9 +117,11 @@ def getRequiredResources(resourceType: str, resourceID: str):
 	WHERE	R.r2resourcetype = Q.r1resourcetype \
 	AND	R.r2typeid = Q.r1typeid \
     ) \
-    SELECT * FROM Requires \
-    WHERE r1resourcetype = " + str(resourceType) + " \
-    AND r1typeid = " + str(resourceID) + \
+    SELECT Q.r1resourcetype, Q.r1typeid, E1.name as item, Q.r2resourcetype, Q.r2typeid, E2.name as requires, E2.fee \
+    FROM resources_equipment E1, resources_equipment E2, Requires Q \
+    WHERE Q.r1resourcetype = '" + str(resourceType) + "' " + \
+    "AND Q.r1typeid = " + str(resourceID) + \
+    " AND E1.typeid = Q.r1typeid AND E2.typeid = Q.r2typeid"
     " ORDER BY r1resourcetype, r1typeid, r2resourcetype, r2typeid;"
 
     return functions.query_db_no_cache(qResourceRequires)
