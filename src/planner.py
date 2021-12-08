@@ -142,6 +142,11 @@ def show():
 
             st.write(dfSelectedResourceDetails)
 
+            st.markdown("Booking this Caterer will automatically create the following additional bookings: ")
+            df_vendor_eq_req = bookings.getVendorEquipmentReq(dfSelectedResourceDetails['resourcetype'][0],dfSelectedResourceDetails['typeid'][0])
+            st.dataframe(df_vendor_eq_req.style.format(subset=['fee'], formatter="{:.2f}"))
+
+
             st.markdown("##### Would you like to book this resource?")
             if st.button('Reserve this Resource!'):
                 bookings.makeBooking(dfSelectedEvent, dfSelectedResourceDetails, 1)
@@ -160,13 +165,17 @@ def show():
             aAvailableID = dfAllAvailable['name'].tolist()
             aAvailableKey = dfAllAvailable['typeid'].tolist()
             dicAvailable = dict(zip(aAvailableKey, aAvailableID))
-            selectedResource = st.selectbox('Select a caterer you would like to book:', aAvailableKey, format_func= lambda x: dicAvailable[x])
+            selectedResource = st.selectbox('Select the entertainment you would like to book:', aAvailableKey, format_func= lambda x: dicAvailable[x])
             
             # Get selected resource details in case of booking
             qSelectedResourceDetails = "SELECT * FROM resources_entertainment R WHERE R.typeid = " + str(selectedResource) + ";"
             dfSelectedResourceDetails = functions.query_db(qSelectedResourceDetails)
 
             st.write(dfSelectedResourceDetails)
+
+            st.markdown("Booking this Entertainer will automatically create the following additional bookings: ")
+            df_vendor_eq_req = bookings.getVendorEquipmentReq(dfSelectedResourceDetails['resourcetype'][0],dfSelectedResourceDetails['typeid'][0])
+            st.dataframe(df_vendor_eq_req.style.format(subset=['fee'], formatter="{:.2f}"))
 
             st.markdown("##### Would you like to book this resource?")
             if st.button('Reserve this Resource!'):
@@ -183,16 +192,30 @@ def show():
             aAvailableKey = dfAllAvailable['typeid'].tolist()
             dicAvailable = dict(zip(aAvailableKey, aAvailableID))
             selectedResource = st.selectbox('Select a piece of equipment you would like to book:', aAvailableKey, format_func= lambda x: dicAvailable[x])
-            
+
+            # let the user specify a quantity and a descriptioon
+            quantity = st.number_input("Quantity", value=0, step=1)
+
             # Get selected resource details in case of booking
             qSelectedResourceDetails = "SELECT * FROM resources_equipment R WHERE R.typeid = " + str(selectedResource) + ";"
             dfSelectedResourceDetails = functions.query_db(qSelectedResourceDetails)
 
-            st.write(dfSelectedResourceDetails)
+            st.dataframe(dfSelectedResourceDetails.style.format(subset=['fee'], formatter="{:.2f}"))
 
-            st.markdown("Booking this resource will require the following additional bookings: ")
-            dfSelectedEquipmentRequirements = bookings.getRequiredResources(str(dfSelectedResourceDetails['resourcetype'][0]), str(dfSelectedResourceDetails['typeid'][0]))
-            st.write(dfSelectedEquipmentRequirements[['item', 'requires', 'fee']])
+
+            # my implmentation of this function differs slightly in that: If two resources require the same piece
+            # of equipment but in differing quantities, we select the line-item requirement that requires a higher
+            # quantity and we list that as the reason.
+            #
+            # Ex: If lighting-set requires 2 power supply and fog machine requires 1, then we list the req. for 2
+            # power machines and the specification that lighting-set requires 2 power supply.
+            st.markdown("Booking this piece of equipment will automatically create the following additional bookings: ")
+            df_vendor_eq_req = bookings.getVendorEquipmentReq(dfSelectedResourceDetails['resourcetype'][0],dfSelectedResourceDetails['typeid'][0])
+            st.dataframe(df_vendor_eq_req.style.format(subset=['fee'], formatter="{:.2f}"))
+
+            # st.markdown("Booking this resource will require the following additional bookings: ")
+            # dfSelectedEquipmentRequirements = bookings.getRequiredResources(str(dfSelectedResourceDetails['resourcetype'][0]), str(dfSelectedResourceDetails['typeid'][0]))
+            # st.write(dfSelectedEquipmentRequirements[['item', 'requires', 'fee']])
 
             st.markdown("##### Would you like to book this resource?")
             if st.button('Reserve this Resource!'):

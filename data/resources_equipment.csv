@@ -1,5 +1,5 @@
-Equipment,1,3,Extension Cord ,Extension Cord ,Electrical,100,Kevin's Party Stuff
-Equipment,2,4,Surge Protector,Surge Protector,Electrical,100,KP Entertainment
+Equipment,1,3,Extension Cord ,Extension Cord ,Utility,100,Kevin's Party Stuff
+Equipment,2,4,Surge Protector,Surge Protector,Utility,100,KP Entertainment
 Equipment,3,180,6 Burner Stove,6 Burner Stove,Kitchen,10,Bridge Kitchen Supply
 Equipment,4,140,4 Burner Stove,4 Burner Stove,Kitchen,18,Bridge Kitchen Supply
 Equipment,5,30,Propane ,Propane ,Utility,50,Orchard Supply
@@ -16,21 +16,21 @@ Equipment,15,200,Dishes (Medium),Dishes (Medium),Kitchen,10,Bridge Kitchen Suppl
 Equipment,16,2000,20x40 stage,20x40 stage,Utility,12,Acme Events
 Equipment,17,2800,20x60 stage,20x60 stage,Utility,8,Acme Events
 Equipment,18,3600,Lighting scaffold,Lighting scaffold,Utility,8,KP Entertainment
-Equipment,19,300,Confetti Cannon,Confetti Cannon,Performance,6,KP Entertainment
+Equipment,19,300,Confetti Cannon,Confetti Cannon,Entertainment,6,KP Entertainment
 Equipment,20,200,Refrigerator,Refrigerator,Kitchen,20,Bridge Kitchen Supply
 Equipment,21,1200,Refrigerated truck,Refrigerated truck,Utility,4,U-HAUL
-Equipment,22,20,Tablecloth,Tablecloth,Utility,3000,Kevin's Party Stuff
-Equipment,23,20,Folding table ,Folding table ,Utility,3000,Kevin's Party Stuff
-Equipment,24,10,Folding chair,Folding chair,Utility,10000,Kevin's Party Stuff
-Equipment,25,40,Podium,Podium,Utility,20,Acme Events
+Equipment,22,20,Tablecloth,Tablecloth,Entertainment,3000,Kevin's Party Stuff
+Equipment,23,20,Folding table ,Folding table ,Entertainment,3000,Kevin's Party Stuff
+Equipment,24,10,Folding chair,Folding chair,Entertainment,10000,Kevin's Party Stuff
+Equipment,25,40,Podium,Podium,Entertainment,20,Acme Events
 Equipment,26,50,Microphone,Microphone,Electrical,100,Crowdsurf Audio
 Equipment,27,20,Amplifier,Amplifier,Electrical,100,Crowdsurf Audio
 Equipment,28,200,Soundboard,Soundboard,Electrical,20,Crowdsurf Audio
 Equipment,29,1500,Stage lighting set,Stage lighting set,Electrical,10,KP Entertainment
-Equipment,30,200,Projector,Projector,Electrical,10,A&M Video
-Equipment,31,50,Screen,Screen,Electrical,10,A&M Video
-Equipment,32,10,Balloons,Balloons,Electrical,50,Kevin's Party Stuff
+Equipment,30,200,Projector,Projector,Entertainment,10,A&M Video
+Equipment,31,50,Screen,Screen,Entertainment,10,A&M Video
+Equipment,32,10,Balloons,Balloons,Entertainment,50,Kevin's Party Stuff
 Equipment,33,300,Power supply,Power supply,Electrical,100,Acme Events
 Equipment,34,200,Light board,Light board,Electrical,20,Acme Events
-Equipment,35,200,Fog machine,Fog machine,Electrical,10,Acme Events
-Equipment,36,200,Haze machine,Haze machine,Electrical,10,Acme Events
+Equipment,35,200,Fog machine,Fog machine,Entertainment,10,Acme Events
+Equipment,36,200,Haze machine,Haze machine,Entertainment,10,Acme Events

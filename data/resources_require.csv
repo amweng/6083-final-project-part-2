@@ -1,3 +1,4 @@
+r1resourcetype,r1typeid,r2resourcetype,r2typeid,numrequired,specification
 Equipment,29,Equipment,33,2,Lighting set req. power supply
 Equipment,29,Equipment,34,1,Lighting set req. light board
 Equipment,35,Equipment,1,1,Fog machine req. extension cord
@@ -22,3 +23,8 @@ Caterer,6,Equipment,9,1,small cookware
 Caterer,12,Equipment,5,2,need propane for pizza oven
 Caterer,16,Equipment,5,2,need propane for bbq
 Caterer,16,Equipment,23,1,table for meat prep
+Entertainment,1,Equipment,26,1,Need mic!
+Entertainment,12,Equipment,29,1,Need lighting set!
+Entertainment,17,Equipment,26,3,need microphones
+Entertainment,9,Equipment,27,1,need sound
+Entertainment,9,Equipment,29,1,need lights

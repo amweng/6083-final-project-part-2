@@ -126,6 +126,37 @@ def getRequiredResources(resourceType: str, resourceID: str):
 
     return functions.query_db_no_cache(qResourceRequires)
 
+# my implmentation of this function differs slightly in that: If two resources require the same piece
+# of equipment but in differing quantities, we select the line-item requirement that requires a higher
+# quantity and we list that as the reason.
+#
+# Ex: If lighting-set requires 2 power supply and fog machine requires 1, then we list the req. for 2
+# power machines and the specification that lighting-set requires 2 power supply.
+def getVendorEquipmentReq(resourceType: str, typeID: int):
+    q_get_vendor_equipment_req = "WITH RECURSIVE Dependencies(r1resourceType, r1typeID, r2resourceType, r2typeID, numRequired, specification)" \
+                                    " AS (SELECT r1resourceType, r1typeID, r2resourceType, r2typeID, numRequired, specification" \
+                                    " FROM resources_require WHERE (r1resourceType, r1typeID) != (r2resourceType, r2typeID)" \
+                                    " UNION" \
+                                    " SELECT D.r1resourceType, D.r1typeID, RR.r2resourceType, RR.r2typeID, RR.numRequired, RR.specification" \
+                                    " FROM   Dependencies D, resources_require RR" \
+                                    " WHERE  (D.r2resourceType, D.r2typeID) = (RR.r1resourceType, RR.r1typeID)" \
+                                    " AND (D.r1resourceType, D.r1typeID) != (D.r2resourceType, D.r2typeID))" \
+                                " SELECT * FROM (SELECT RE.resourceType, RE.name, RE.fee, D.numRequired, D.specification" \
+                                    " FROM Dependencies D, resources_equipment RE" \
+                                    " WHERE (D.r2resourcetype, D.r2typeID) = (RE.resourceType, RE.typeID)" \
+                                    " AND D.r1resourceType = '" + resourceType + "'" \
+                                    " AND D.r1typeID = "+ str(typeID) + " ) AS VD" \
+                                    " WHERE (name, numRequired) IN (" \
+                                        " SELECT vd.name, MAX(vd.numRequired)" \
+                                            " FROM (SELECT RE.name, D.numRequired" \
+                                            " FROM Dependencies D, resources_equipment RE" \
+                                            " WHERE (D.r2resourcetype, D.r2typeID) = (RE.resourceType, RE.typeID)" \
+                                            " AND D.r1resourceType = '" + resourceType + "'" \
+                                            " AND D.r1typeID = "+ str(typeID) + " ) AS VD" \
+                                " GROUP BY vd.name);"
+
+    return functions.query_db(q_get_vendor_equipment_req)
+
 def isResourceQtyAvailable(resourceType: str, resourceID: int, timeWindow: pandas.DataFrame, qtyRequested: int):
     # Queries the resources table and bookings table to compute math over whether there exists a sufficient quantity for booking
     # Returns a boolean
@@ -194,4 +225,4 @@ def makeBooking(dfEvent: pandas.DataFrame, dfResource: pandas.DataFrame, qty: in
                     "'," + str(dfResource['typeid'][0]) + ",'" + str(dfEvent['start_at'][0]) + "','" + str(dfEvent['end_at'][0]) + \
                     "'," + str(dfResource['fee'][0]) + "," + str(qty) + ",'" + str(dfResource['name'][0]) + "');"
         functions.execute_db(qInsertBooking)
-    
+
