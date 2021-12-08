@@ -123,7 +123,7 @@ def show():
         selectedResourceType = st.selectbox('Select a type of resource for which you would like to make a booking:', dfBookableResources['enumlabel'])
         
         ## Here is a list of available resources of that type
-        dfAllAvailable = bookings.getAllAvailable(selectedResourceType, dfSelectedEvent)
+        dfAllAvailable = bookings.getAllAvailable(dfSelectedEvent['eventid'][0],selectedResourceType, dfSelectedEvent)
         
         if(selectedResourceType == 'Caterer'):
             dfAllAvailableDisplay = dfAllAvailable[['name', 'fee']]
@@ -138,7 +138,27 @@ def show():
         elif(selectedResourceType == 'Entertainment'):
             dfAllAvailableDisplay = dfAllAvailable[['name', 'genre', 'contentrating', 'fee']]
             st.markdown('#### Here is a list of all available enteratiners for your event:')
+            st.markdown('Please note, this list represents only those entertainers whose act has been specified to fit within the stage space of your specifed venue.' +
+                        ' Not all entertainers have specified such a requirement.  You are encouraged to contact them or a customer service representative to confirm that ' +
+                        'their act will fit in your space.')
             st.table(dfAllAvailableDisplay)
+            
+            # Selection box for entertainers
+            aAvailableID = dfAllAvailable['name'].tolist()
+            aAvailableKey = dfAllAvailable['typeid'].tolist()
+            dicAvailable = dict(zip(aAvailableKey, aAvailableID))
+            selectedResource = st.selectbox('Select a venue you would like to book:', aAvailableKey, format_func= lambda x: dicAvailable[x])
+            
+            # Get selected resource details in case of booking
+            qSelectedResourceDetails = "SELECT * FROM resources_entertainment R WHERE R.typeid = " + str(selectedResource) + ";"
+            dfSelectedResourceDetails = functions.query_db(qSelectedResourceDetails)
+
+            st.write(dfSelectedResourceDetails)
+
+            st.markdown("##### Would you like to book this resource?")
+            if st.button('Reserve this Resource!'):
+                bookings.makeBooking(dfSelectedEvent, dfSelectedResourceDetails, 1)
+
         elif(selectedResourceType == 'Equipment'):
             dfAllAvailableDisplay = dfAllAvailable[['name', 'equipmenttype', 'quantity', 'fee']]
             st.markdown('#### Here is a list of all available equipment for your event:')
@@ -157,28 +177,41 @@ def show():
             dfQualifiedStaffDisplay = dfQualifiedStaff[['first_name', 'last_name', 'qualification', 'fee']]
             st.write(dfQualifiedStaffDisplay)
         elif(selectedResourceType == 'Venue'):
-            dfAllAvailableDisplay = dfAllAvailable[['name', 'address', 'roomnum', 'capacity', 'liquorlicense', 'stagearea', 'fee']]
-            st.markdown('#### Here is a list of all available venues for your event:')
-            st.table(dfAllAvailableDisplay)
+            # An event can only have one venue, therefore this option serves the let the user switch venues rather than book more!
+            qExistingEventLocation = "SELECT V.name FROM events E, resources_venues V " + \
+                                     "WHERE eventid = " + str(dfSelectedEvent['eventid'][0]) + \
+                                     "AND E.location = V.address;"
+            dfExistingEventLocation = functions.query_db_no_cache(qExistingEventLocation)
 
-            # Selection box for venues
-            aAvailableID = dfAllAvailable['name'].tolist()
-            aAvailableKey = dfAllAvailable['typeid'].tolist()
-            dicAvailable = dict(zip(aAvailableKey, aAvailableID))
-            selectedResource = st.selectbox('Select a venue you would like to book:', aAvailableKey, format_func= lambda x: dicAvailable[x])
+            st.markdown("> Your event is currently taking place at the venue '" + str(dfExistingEventLocation['name'][0]) + "'.  If you book a new venue, it will replace this venue!")
             
-            # Get selected resource details in case of booking
-            qSelectedResourceDetails = "SELECT * FROM resources_venues R WHERE R.typeid = " + str(selectedResource) + ";"
-            dfSelectedResourceDetails = functions.query_db(qSelectedResourceDetails)
+            if(dfAllAvailable.size == 0):
+                st.markdown("## NO VENUES FOUND!")
+                st.markdown("**Given the size of your event, or space required by your entertainers, there are no alternative venues in our database for your event. " + 
+                            "If you desire to rebook your venue, please consider downsizing the size of your event.**")
+                st.markdown("#### Attention: univiting guests may have unintended consequences!")
+            else:
+                dfAllAvailableDisplay = dfAllAvailable[['name', 'address', 'roomnum', 'capacity', 'liquorlicense', 'stagearea', 'fee']]
 
-            st.write(dfSelectedResourceDetails)
+            
+                st.markdown('#### Here is a list of alternative venues for your event:')
+                st.table(dfAllAvailableDisplay)
 
-            st.markdown("##### Would you like to book this resource?")
-            if st.button('Reserve this Resource!'):
-                qVenueInsert = "INSERT INTO bookings VALUES (" + str(dfSelectedEvent['eventid'][0]) + ",'" + str(dfSelectedResourceDetails['resourcetype'][0]) + "'," + str(dfSelectedResourceDetails['typeid'][0]) + ",'" + \
-                                str(dfSelectedEvent['start_at'][0]) + "','" + str(dfSelectedEvent['end_at'][0]) + "'," + str(dfSelectedResourceDetails['fee'][0]) + "," + \
-                                "1, '" + str(dfSelectedResourceDetails['name'][0]) + "');"
-                functions.execute_db(qVenueInsert)
+                # Selection box for venues
+                aAvailableID = dfAllAvailable['name'].tolist()
+                aAvailableKey = dfAllAvailable['typeid'].tolist()
+                dicAvailable = dict(zip(aAvailableKey, aAvailableID))
+                selectedResource = st.selectbox('Select a new venue you would like to book:', aAvailableKey, format_func= lambda x: dicAvailable[x])
+                
+                # Get selected resource details in case of booking
+                qSelectedResourceDetails = "SELECT * FROM resources_venues R WHERE R.typeid = " + str(selectedResource) + ";"
+                dfSelectedResourceDetails = functions.query_db(qSelectedResourceDetails)
+
+                st.write(dfSelectedResourceDetails)
+
+                st.markdown("##### Would you like to book this resource?")
+                if st.button('Reserve this Resource!'):
+                    bookings.makeBooking(dfSelectedEvent, dfSelectedResourceDetails, 1)
         else:
             "Something has gone horribly wrong and I'll probably die!"
 

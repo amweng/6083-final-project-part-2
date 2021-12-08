@@ -18,18 +18,67 @@ def isResourceAvailable(resourceType: str, resourceID: int, timeWindow: pandas.D
             return False
     return True
 
-def getAllAvailable(resourceType: str, timeWindow: pandas.DataFrame):
+def getAllAvailableEntertainers(eventID: int, resourceType: str, timeWindow: pandas.DataFrame):
+    qAllAvailableEntertainers = "SELECT A.* " + \
+                                "FROM (" + \
+                                "SELECT E.* " + \
+                                "FROM resources_entertainment E " + \
+                                "WHERE E.spacerequired is null " + \
+                                "UNION " + \
+                                "SELECT E.* " + \
+                                "FROM resources_entertainment E, (" + \
+                                "SELECT V.address, V.stagearea " + \
+                                "FROM events E, resources_venues V " + \
+                                "WHERE E.eventid = " + str(eventID) + " " + \
+                                "AND E.location = V.address) V " + \
+                                "WHERE E.spacerequired is not null " + \
+                                "AND E.spacerequired < V.stagearea) A " + \
+                                "WHERE typeid NOT IN (" + \
+                                "SELECT typeid " + \
+                                "FROM (" + \
+                                "SELECT ('" + str(timeWindow['start_at'][0]) + "','" + str(timeWindow['end_at'][0]) + "') " + \
+                                "OVERLAPS (B.start_at, B.end_at), B.typeid " + \
+                                "FROM bookings B " + \
+                                "WHERE B.resourcetype = 'Entertainment') B " + \
+                                "WHERE B.overlaps = 'true') " + \
+                                "ORDER BY A.contentrating, A.fee, A.genre;"
+    return functions.query_db_no_cache(qAllAvailableEntertainers)
+
+def getAllAvailableVenues(eventID: int, resourceType: str, timeWindow: pandas.DataFrame):
+    qAllAvailableVenues = "SELECT V.* " + \
+                        "FROM resources_venues V " + \
+                        "WHERE V.capacity > (" + \
+                            "SELECT count(*) " + \
+                            "FROM guests_attend G " + \
+                            "WHERE G.eventid = 7) " + \
+                        "AND V.stagearea > (" + \
+                            "SELECT COALESCE(MAX(E.spacerequired),0) " + \
+                            "FROM bookings B, resources_entertainment E " + \
+                            "WHERE B.resourcetype = 'Entertainment' " + \
+                            "AND B.eventid = " + str(eventID) + ") " + \
+                        "AND typeid NOT IN (" + \
+                                "SELECT typeid " + \
+                                "FROM (" + \
+                                "SELECT ('" + str(timeWindow['start_at'][0]) + "','" + str(timeWindow['end_at'][0]) + "') " + \
+                                "OVERLAPS (B.start_at, B.end_at), B.typeid " + \
+                                "FROM bookings B " + \
+                                "WHERE B.resourcetype = 'Venue') B " + \
+                                "WHERE B.overlaps = 'true') " + \
+                        "ORDER BY V.capacity, V.address, V.roomnum;"
+    return functions.query_db_no_cache(qAllAvailableVenues)
+
+def getAllAvailable(eventid: int, resourceType: str, timeWindow: pandas.DataFrame):
     
     if(resourceType == 'Caterer'):
         resourcesTable = 'resources_caterers'
     elif(resourceType == 'Entertainment'):
-        resourcesTable = 'resources_entertainment'
+        return getAllAvailableEntertainers(eventid, resourceType, timeWindow)
     elif(resourceType == 'Equipment'):
         resourcesTable = 'resources_equipment'
     elif(resourceType == 'Staff'):
         resourcesTable = 'resources_staff'
     elif(resourceType == 'Venue'):
-        resourcesTable = 'resources_venues'
+        return getAllAvailableVenues(eventid, resourceType, timeWindow)
     else:
         resourcesTable = "INVALID_TYPE"
     
@@ -75,11 +124,26 @@ def getRequiredResources(resourceType: str, resourceID: str):
 
     return functions.query_db_no_cache(qResourceRequires)
 
-def isResourceQtyAvailable(resourceType: str, resourceID: int, timeWindow: pandas.DataFrame, qty: int):
+def isResourceQtyAvailable(resourceType: str, resourceID: int, timeWindow: pandas.DataFrame, qtyRequested: int):
     # Queries the resources table and bookings table to compute math over whether there exists a sufficient quantity for booking
     # Returns a boolean
     # Assumes timeWindow is a dataframe of the format (eventID, date, start_at, end_at) from events table
-    return True
+
+    # Implementation note: if a table is empty, SUM() returns a null value.  COALESCE(x,y) returns the first non-null value of (x,y)
+    # So, COALECE(SUM(arg),0)) will pass 'arg' if not null and 0 if arg is null.
+    qSufficientQty = "SELECT CASE WHEN " + str(qtyRequested) + " <= (" + \
+                        "SELECT A.in_system - B.booked AS units_avail " + \
+                        "FROM (SELECT quantity as in_system " + \
+                            "FROM resources_equipment " + \
+                            "WHERE typeid = " + str(resourceID) + ") A, " + \
+                            "(SELECT COALESCE(sum(num),0) AS booked " + \
+                            "WHERE resourcetype = '" + resourceType + "' " + \
+                            "AND typeid = " + str(resourceID) + " " + \
+                            "AND ('" + str(timeWindow['start_at'][0]) + "','" + str(timeWindow['end_at'][0]) + "') " + \
+                    "OVERLAPS (start_at, end_at)) B) " + \
+                    "THEN CAST (1 AS BIT) ELSE CAST (0 AS BIT) END;"
+    
+    return functions.query_db_no_cache(qSufficientQty)
 
 def isStaffAvailableQualified(qualificationType: str, timeWindow: pandas.DataFrame):
     if(qualificationType == 'None (ie, General Labourer)'):
@@ -108,64 +172,24 @@ def isStaffAvailableQualified(qualificationType: str, timeWindow: pandas.DataFra
     
     return functions.query_db(qQualifiedAvailableStaff)
 
-def makeBooking(dfSelectedEvent: pandas.DataFrame, dfSelectedResource: pandas.DataFrame, qty: int):
-    def bookCaterer(dfEventEntry: pandas.DataFrame, resourceType: str, resourceID: int, qty: int):
-        qCatererDetails = "" #DO WE BOOK THE CATERER OR THE MENU (AND THE CATERER JUST COMES ALONG?)
-        pass
+def makeBooking(dfEvent: pandas.DataFrame, dfResource: pandas.DataFrame, qty: int=1):
+    # This booking function expects that the resource has previously passed all checks for availabilty.
+    # If a redundant booking occurs, please contact the service deparment immediately.
 
-    def bookEntertainment():
-        qEntertainerDetails = "SELECT R.name, R.fee FROM resources_entertainment R WHERE typeid = " + resourceID + ";"
-        dfEntertainerDetails = functions.query_db(qEntertainerDetails)
-        aEventID = dfEventEntry['eventid'][0]
-        aEntertainerFee = dfEntertainerDetails['fee'][0]
-        aEntertainerName = dfEntertainerDetails['name'][0]
+    if(dfResource['resourcetype'][0] == 'Venue'):
+        qDropVenue = "DELETE FROM bookings WHERE eventid = " + str(dfEvent['eventid'][0]) + ";"
+        functions.execute_db(qDropVenue)
 
-        qEntertainerInsert = "INSERT INTO bookings(eventid, resourcetype, typeid, start_at, end_at, cost, num, description) VALUES(" + \
-                            dfEventEntry['eventid'][0] + ',' + \
-                            '\'' + resourceType +'\',' + \
-                            typeID + ',' + \
-                            dfEventEntry['start_at'][0] + ',' + \
-                            dfEventEntry['end_at'][0] + ',' + \
-                            aEntertainerFee + ',' + \
-                            '1,\'' + aEntertainerName + \
-                            "\');"
-        dfVoid = query_db(qEntertainerInsert)
-        pass
+        qInsertBooking =   "INSERT INTO bookings VALUES (" + str(dfEvent['eventid'][0]) + ",'" + str(dfResource['resourcetype'][0]) + \
+                    "'," + str(dfResource['typeid'][0]) + ",'" + str(dfEvent['start_at'][0]) + "','" + str(dfEvent['end_at'][0]) + \
+                    "'," + str(dfResource['fee'][0]) + "," + str(qty) + ",'" + str(dfResource['name'][0]) + "');"
+        functions.execute_db(qInsertBooking)
 
-    def bookEquipment():
-        pass
-
-    def bookStaff():
-        pass
-
-    def bookVenue():
-        qVenueInsert = "INSERT INTO bookings VALUES (" + str(dfSelectedEvent['eventid'][0]) + ",'" + resourceType + "'," + str(typeID) + "," + \
-                        str(dfSelectedEvent['start_at'][0]) + "," + str(dfSelectedEvent['end_at'][0]) + "," + str(dfSelectedResource['fee'][0]) + "," + \
-                        "1, '" + str(dfSelectedResource['name'][0]) + "');"
-        dfVoid = query_db(qVenueInsert)
-        
-    resourceType = str(dfSelectedResource['resourcetype'][0])
-    resourceID = str(dfSelectedResource['typeid'][0])
-    if(isResourceAvailable(resourceType, resourceID, dfSelectedEvent)):
-        if(resourceType == 'Caterer'):
-            bookCaterer()
-        elif(resourceType == 'Entertainment'):
-            bookEntertainment()
-        elif(resourceType == 'Equipment'):
-            if(isResourceQtyAvailable):
-                bookEquipment()
-            else:
-                qResourceName = "SELECT specification FROM resources WHERE resourcetype = '" + resourceType + "' AND resource ID like " + str(resourceID) + ";"
-                dfResourceName = functions.query_db(qResourceName)
-                aResourceName = []
-                st.markdown('The ' + dfResourceName['specification'][0] + ' that you requested is not available in sufficient quantity.')
-        elif(resourceType == 'Staff'):
-            bookStaff()
-        elif(resourceType == 'Venue'):
-            bookVenue()
-        else:
-            st.text('Please select a valid booking type.\n \
-            Ensure your selection comes from the following, case-sensitive list: \n\
-            Caterer, Entertainment, Equipment, Staff, Venue')
+        qModifyEventListing = "UPDATE events SET location = '" + str(dfResource['address'][0]) + "' WHERE eventid = " + str(dfEvent['eventid'][0]) + ";"
+        functions.execute_db(qModifyEventListing)
     else:
-        st.markdown('The resource you requested is not available at that time.')
+        qInsertBooking =   "INSERT INTO bookings VALUES (" + str(dfEvent['eventid'][0]) + ",'" + str(dfResource['resourcetype'][0]) + \
+                    "'," + str(dfResource['typeid'][0]) + ",'" + str(dfEvent['start_at'][0]) + "','" + str(dfEvent['end_at'][0]) + \
+                    "'," + str(dfResource['fee'][0]) + "," + str(qty) + ",'" + str(dfResource['name'][0]) + "');"
+        functions.execute_db(qInsertBooking)
+    
