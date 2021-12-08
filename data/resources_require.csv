@@ -1,4 +1,3 @@
-r1resourcetype,r1typeid,r2resourcetype,r2typeid,numrequired,specification
 Equipment,29,Equipment,33,2,Lighting set req. power supply
 Equipment,29,Equipment,34,1,Lighting set req. light board
 Equipment,35,Equipment,1,1,Fog machine req. extension cord
