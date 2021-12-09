@@ -240,6 +240,35 @@ def show():
                 st.markdown('Resource Booked!')
 
         elif(selectedResourceType == 'Staff'):
+            st.markdown('### Staff Requirements for your event:')
+            if(bookings.isEvent_Over21(dfSelectedEvent)):
+                st.markdown("> You have indicated that the audience for your event be over 21.")
+                if(bookings.isBartenderBooked(dfSelectedEvent)):
+                    st.markdown("> You **DO** have a bartender booked for this event and **DO NOT** need to book another.")
+                else:
+                    st.markdown('> ** YOU DO NOT HAVE A BARTENDER BOOKED FOR THIS EVENT AND MUST BOOK ONE BEFORE THE EVENT CAN BE APPROVED.')
+            else:
+                st.markdown("> Your event is not indicated to be over 21 only.  If you wish alcohol to be served at this event, you must book a bartender.")
+
+            if(bookings.)
+
+            st.markdown("##### In order for your event to be approved, it must pass these checks:")
+            if(bookings.isMandatoryStaffPersonPresent(dfSelectedEvent)):
+                st.write(bookings.isMandatoryStaffPersonPresent(dfSelectedEvent))
+                st.markdown("You **DO** currently have the mandatory staff person employed for the event.")
+            else:
+                st.markdown("You **DO NOT** currently have the mandatory staff person employed to oversee your event!")
+            if(bookings.isBartenderBooked(dfSelectedEvent)):
+                st.markdown("You **DO** currently have a bartender booked for this event.")
+            else:
+                st.markdown("You **DO NOT** currently have a bartender booked for this event.")
+            if(bookings.isElectricianPresent(dfSelectedEvent)):
+                st.markdown("You **DO** currently have an electrician booked for this event.")
+            else:
+                st.markdown("You **DO NOT** currently have a electrician booked for this event.")
+
+
+
             qQualificationsAvailable = "SELECT pg_enum.enumlabel FROM pg_enum, pg_type \
                              WHERE pg_type.oid = pg_enum.enumtypid AND pg_type.typname like 'qualification' \
                              ORDER BY pg_enum.enumlabel; "

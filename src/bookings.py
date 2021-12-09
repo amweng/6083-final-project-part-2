@@ -216,10 +216,7 @@ def isMandatoryStaffPersonPresent(timeWindow: pandas.DataFrame):
                             THEN CAST(1 AS BIT) \
                             ELSE CAST(0 AS BIT) \
                             END;"
-    if (functions.query_db_no_cache(qIsStaffPersonPresent)['case'][0]):
-        return True
-    else:
-        return False
+    return (functions.query_db_no_cache(qIsStaffPersonPresent)['case'][0] == 1)
 
 def isElectricianPresent(timeWindow: pandas.DataFrame):
     qIsElectricianPresent = "SELECT CASE WHEN EXISTS (\
@@ -235,10 +232,7 @@ def isElectricianPresent(timeWindow: pandas.DataFrame):
                             THEN CAST (1 AS BIT) \
                             ELSE CAST (0 AS BIT) \
                             END;"
-    if (functions.query_db_no_cache(qIsElectricianPresent)['case'][0]):
-        return True
-    else:
-        return False
+    return (functions.query_db_no_cache(qIsElectricianPresent)['case'][0] == 1)
 
 def getAllDietaryRestrictions(dfEvent: pandas.DataFrame):
     qAllDietaryRestrictions = "SELECT 	GA.eventid, GA.email, DR.restriction, DR.severity \
@@ -269,15 +263,17 @@ def getAllAccomodatingMenus(dfEvent: pandas.DataFrame):
     return functions.query_db(qAllAccomodatingMenus)
 
 def getCaterersAccomodatingMenus(dfEvent: pandas.DataFrame, dfResource: pandas.DataFrame):
-    qCaterersAccomodatingMenus = "SELECT  MO.menuid, MO.name, MA.accommodation \
-                                FROM	menus_offered MO, menus_accommodate MA \
-                                WHERE	MO.menuid = MA.menuid \
-                                AND	MA.accommodation IN ( SELECT 	DR.restriction \
+    qCaterersAccomodatingMenus = "SELECT distinct name as menu_name, accommodation\
+                                FROM (	SELECT 	MO.menuid, MO.caterer_name, MO.name, MA.accommodation \
+                                    FROM	menus_offered MO full join menus_accommodate MA \
+                                    ON	MO.menuid = MA.menuid \
+                                    ORDER BY MO.caterer_name, MO.name, MA.accommodation ) A \
+                                WHERE accommodation IN (  \
+                                    SELECT 	DR.restriction \
                                     FROM	guests_attend GA, dietary_restrictions_have DR \
                                     WHERE	GA.eventid = " + str(dfEvent['eventid'][0]) + " \
                                     AND	GA.email = DR.email) \
-                                AND	MO.name = '" + str(dfResource['name'][0]) + "' \
-                                ORDER BY MA.accommodation;"
+                                AND	caterer_name = '" + str(dfResource['name'][0]) + "';"
     return functions.query_db(qCaterersAccomodatingMenus)
 
 def getAllCatererMenusPlusAccomodations(dfEvent: pandas.DataFrame, dfResource: pandas.DataFrame):
@@ -288,6 +284,24 @@ def getAllCatererMenusPlusAccomodations(dfEvent: pandas.DataFrame, dfResource: p
                                         WHERE caterer_name = '" + str(dfResource['name'][0]) + "' \
                                         ORDER BY name;"
     return functions.query_db(qAllCatererMenusPlusAccomodations)
+
+def isEvent_Over21(dfEvent: pandas.DataFrame):
+    qIsEventOver21 = "SELECT over_21 FROM events WHERE eventid = " + str(dfEvent['eventid'][0]) + ";"
+    return functions.query_db(qIsEventOver21)['over_21'][0]
+
+def isBartenderBooked(dfEvent: pandas.DataFrame):
+    qIsBartenderBooked = "SELECT CASE WHEN EXISTS (SELECT * \
+                            FROM 	bookings B, resources_staff R, qualifications_have Q \
+                            WHERE 	B.resourcetype = 'Staff' \
+                            AND	B.typeid IS NOT NULL \
+                            AND 	('" + str(dfEvent['start_at'][0]) + "','" + str(dfEvent['end_at'][0]) + "') OVERLAPS (B.start_at, B.end_at) \
+                            AND	B.typeid = R.typeid \
+                            AND	R.email = Q.staff_email \
+                            AND	Q.qualification = 'Bartending') \
+                        THEN CAST (1 AS BIT) \
+                        ELSE CAST (0 AS BIT) \
+                        END;"
+    return (functions.query_db_no_cache(qIsBartenderBooked)['case'][0] == 1)
 
 def bookRequiredResources(dfEvent: pandas.DataFrame, dfResource: pandas.DataFrame):
     # This code adapts Andrew's brilliant getVendorEquipmentReq() code into an iterative query for batch insertion
