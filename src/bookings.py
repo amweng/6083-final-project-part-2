@@ -381,3 +381,34 @@ def makeBooking(dfEvent: pandas.DataFrame, dfResource: pandas.DataFrame, qty: in
         functions.execute_db(qInsertBooking)
         bookRequiredResources(dfEvent, dfResource)
 
+def deleteBookingDependencies(dfEvent: pandas.DataFrame, dfResource: pandas.DataFrame):
+    qDeleteResourceDependencies = "WITH RECURSIVE requires(r1resourcetype, r1typeid, r2resourcetype, r2typeid) AS ( \
+                                        SELECT r1resourcetype, r1typeid, r2resourcetype, r2typeid from resources_require \
+                                        UNION \
+                                        SELECT  R.r1resourcetype, R.r1typeid, Q.r2resourcetype, Q.r2typeid \
+                                        FROM	requires R, resources_require Q	\
+                                        WHERE	R.r2resourcetype = Q.r1resourcetype \
+                                        AND	R.r2typeid = Q.r1typeid \
+                                    ) \
+                                    DELETE FROM bookings \
+                                    WHERE	(resourcetype, typeid) IN ( \
+                                        SELECT 	r2resourcetype as resourcetype, r2typeid as typeid \
+                                        FROM 	requires \
+                                        WHERE 	r1resourcetype = '" + str(dfResource['resourcetype'][0]) + "' \
+                                        AND	r1typeid = " + str(dfResource['typeid'][0]) + " ) \
+                                    AND	eventid = " + str(dfEvent['eventid'][0]) + ";"
+    functions.execute_db(qDeleteResourceDependencies)
+
+def deleteBooking(dfEvent: pandas.DataFrame, dfResource: pandas.DataFrame):
+    qDeleteBooking = "DELETE FROM bookings \
+                        WHERE eventid = " + str(dfEvent['eventid'][0]) + " \
+                        AND   resourcetype = '" + str(dfResource['resourcetype'][0]) + "' \
+                        AND   typeid = " + str(dfResource['typeid'][0]) + ";"
+    deleteBookingDependencies(dfEvent, dfResource)
+    functions.execute_db(qDeleteBooking)
+
+def deleteEvent(dfEvent: pandas.DataFrame):
+    qDeleteEventBookings = "DELETE FROM bookings WHERE eventid = " + str(dfEvent['eventid'][0]) + ";"
+    qDeleteEventListing = "DELETE FROM events WHERE eventid = " + str(dfEvent['eventid'][0]) + ";"
+    functions.execute_db(qDeleteEventBookings)
+    functions.execute_db(qDeleteEventListing)

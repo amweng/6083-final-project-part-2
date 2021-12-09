@@ -246,7 +246,7 @@ def show():
                 if(bookings.isBartenderBooked(dfSelectedEvent)):
                     st.markdown("> You **DO** have a bartender booked for this event and **DO NOT** need to book another.")
                 else:
-                    st.markdown('> ** YOU DO NOT HAVE A BARTENDER BOOKED FOR THIS EVENT AND MUST BOOK ONE BEFORE THE EVENT CAN BE APPROVED.')
+                    st.markdown('> YOU DO NOT HAVE A BARTENDER BOOKED FOR THIS EVENT AND MUST BOOK ONE.')
 
             if(bookings.IsElectricianRequired(dfSelectedEvent)):
                 st.markdown("> You have booked equpiment that requires a qualified electrical technician to safely install and operate.")
@@ -359,7 +359,7 @@ def show():
         aEventSelectName = dfEventSelect['event_name'].tolist()
         aEventSelectID = dfEventSelect['eventid'].tolist()
         dic = dict(zip(aEventSelectID, aEventSelectName))
-        selectedEvent = st.selectbox('Select an event you would like to cancel:', aEventSelectID, format_func=lambda x: dic[x])
+        selectedEvent = st.selectbox('Select an event whose bookings you would like to edit:', aEventSelectID, format_func=lambda x: dic[x])
 
         # use the selected event to extract the event row for the selected event
         qSelectedDetails = "SELECT * FROM events E WHERE E.event_planner_email LIKE '" + user + \
@@ -377,11 +377,32 @@ def show():
         else:
             st.dataframe(dfBookedResources)
 
-        st.markdown("# Got to here and had to stop for the night.  Smoother to select type to cancel, then query up list, then select.")
-        aBookedResourceSelectName = dfBookedResources['description'].tolist()
-        aBookedResourceSelectID = dfBookedResources['typeid'].tolist()
-        aBookedResourceSelectType = dfBookedResources['resourcetype'].tolist()
-        dictBookedResourceSelect = dict(zip(zip(aBok)))
+        # Get list of all bookable resources
+        qBookableResources = "SELECT pg_type.typname, pg_enum.enumlabel FROM pg_enum, pg_type \
+                             WHERE pg_type.oid = pg_enum.enumtypid AND pg_type.typname like 'resourcetype' \
+                             ORDER BY pg_enum.enumlabel; "
+        dfBookableResources = functions.query_db(qBookableResources)
+
+        selectedResourceType = st.selectbox('Select the type of resource you would like to cancel:', dfBookableResources['enumlabel'])
+
+         # Selection box for venues
+        aAvailableID = dfBookedResources['description'].tolist()
+        aAvailableKey = dfBookedResources['typeid'].tolist()
+        dicAvailable = dict(zip(aAvailableKey, aAvailableID))
+        selectedResource = st.selectbox('Select the resource you would like to cancel:', aAvailableKey, format_func= lambda x: dicAvailable[x])
+
+        # Get selected resource details in case of booking
+        qSelectedResourceDetails = "SELECT * FROM resources R WHERE R.resourcetype = '" + str(selectedResourceType) + "' AND R.typeid = " + str(selectedResource) + ";"
+        dfSelectedResourceDetails = functions.query_db(qSelectedResourceDetails)
+
+        st.write(dfSelectedResourceDetails)
+
+        if (st.button('Cancel this Resource')):
+            bookings.deleteBooking(dfSelectedEvent, dfSelectedResourceDetails)
+            st.markdown('Resource Booking Cancelled.')
+
+
+        
     elif(action == "Cancel an Event"):
         # fetch the list of all events
         qFetchEvents = "SELECT * FROM events E WHERE E.event_planner_email LIKE '" + user + \
