@@ -97,32 +97,32 @@ def getAllAvailable(eventid: int, resourceType: str, timeWindow: pandas.DataFram
 def getAllResourceRequirements():
     # Returns a recursively constructed 'bill of materials' over the resources_require table
     qResourcesRequire = "WITH RECURSIVE Requires(r1resourcetype, r1typeid, r2resourcetype, r2typeid) as ( \
-	SELECT r1resourcetype, r1typeid, r2resourcetype, r2typeid FROM resources_require \
-	UNION \
-	SELECT 	R.r1resourcetype, R.r1typeid, Q.r2resourcetype, Q.r2typeid \
-	FROM	Requires R, Resources_Require Q \
-	WHERE	R.r2resourcetype = Q.r1resourcetype \
-	AND	R.r2typeid = Q.r1typeid \
-    ) \
-    SELECT * FROM Requires ORDER BY r1resourcetype, r1typeid, r2resourcetype, r2typeid;"
+                            SELECT r1resourcetype, r1typeid, r2resourcetype, r2typeid FROM resources_require \
+                            UNION \
+                            SELECT 	R.r1resourcetype, R.r1typeid, Q.r2resourcetype, Q.r2typeid \
+                            FROM	Requires R, Resources_Require Q \
+                            WHERE	R.r2resourcetype = Q.r1resourcetype \
+                            AND	R.r2typeid = Q.r1typeid \
+                        ) \
+                        SELECT * FROM Requires ORDER BY r1resourcetype, r1typeid, r2resourcetype, r2typeid;"
 
     return functions.query_db_no_cache(qResourcesRequire)
 
 def getRequiredResources(resourceType: str, resourceID: str):
     qResourceRequires = "WITH RECURSIVE Requires(r1resourcetype, r1typeid, r2resourcetype, r2typeid) as ( \
-	SELECT r1resourcetype, r1typeid, r2resourcetype, r2typeid FROM resources_require \
-	UNION \
-	SELECT 	R.r1resourcetype, R.r1typeid, Q.r2resourcetype, Q.r2typeid \
-	FROM	Requires R, Resources_Require Q \
-	WHERE	R.r2resourcetype = Q.r1resourcetype \
-	AND	R.r2typeid = Q.r1typeid \
-    ) \
-    SELECT Q.r1resourcetype, Q.r1typeid, E1.name as item, Q.r2resourcetype, Q.r2typeid, E2.name as requires, E2.fee \
-    FROM resources_equipment E1, resources_equipment E2, Requires Q \
-    WHERE Q.r1resourcetype = '" + str(resourceType) + "' " + \
-    "AND Q.r1typeid = " + str(resourceID) + \
-    " AND E1.typeid = Q.r1typeid AND E2.typeid = Q.r2typeid"
-    " ORDER BY r1resourcetype, r1typeid, r2resourcetype, r2typeid;"
+                            SELECT r1resourcetype, r1typeid, r2resourcetype, r2typeid FROM resources_require \
+                            UNION \
+                            SELECT 	R.r1resourcetype, R.r1typeid, Q.r2resourcetype, Q.r2typeid \
+                            FROM	Requires R, Resources_Require Q \
+                            WHERE	R.r2resourcetype = Q.r1resourcetype \
+                            AND	R.r2typeid = Q.r1typeid \
+                        ) \
+                        SELECT Q.r1resourcetype, Q.r1typeid, E1.name as item, Q.r2resourcetype, Q.r2typeid, E2.name as requires, E2.fee \
+                        FROM resources_equipment E1, resources_equipment E2, Requires Q \
+                        WHERE Q.r1resourcetype = '" + str(resourceType) + "' " + \
+                        "AND Q.r1typeid = " + str(resourceID) + \
+                        " AND E1.typeid = Q.r1typeid AND E2.typeid = Q.r2typeid" + \
+                        " ORDER BY r1resourcetype, r1typeid, r2resourcetype, r2typeid;"
 
     return functions.query_db_no_cache(qResourceRequires)
 
@@ -303,6 +303,20 @@ def isBartenderBooked(dfEvent: pandas.DataFrame):
                         END;"
     return (functions.query_db_no_cache(qIsBartenderBooked)['case'][0] == 1)
 
+def IsElectricianRequired(dfEvent: pandas.DataFrame):
+    qIsElectricianRequired = "SELECT CASE WHEN EXISTS (SELECT * \
+                                FROM 	bookings B, resources_equipment R \
+                                WHERE 	B.resourcetype = 'Equipment' \
+                                AND	R.equipmenttype = 'Electrical' \
+                                AND	B.typeid IS NOT NULL \
+                                AND	B.typeid = R.typeid \
+                                AND B.eventid = " + str(dfEvent['eventid'][0]) + "  \
+                            ) \
+                            THEN CAST(1 AS BIT) \
+                            ELSE CAST (0 AS BIT) \
+                            END;"
+    return (functions.query_db_no_cache(qIsElectricianRequired)['case'][0] == 1)
+
 def bookRequiredResources(dfEvent: pandas.DataFrame, dfResource: pandas.DataFrame):
     # This code adapts Andrew's brilliant getVendorEquipmentReq() code into an iterative query for batch insertion
     # For the attentive reader interested in some specifics, note that the syntax is, broadly, 'INSERT INTO bookings () on conflict do nothing;'
@@ -323,9 +337,9 @@ def bookRequiredResources(dfEvent: pandas.DataFrame, dfResource: pandas.DataFram
                         SELECT * FROM ( \
                             SELECT E.eventid, D.r2resourcetype, D.r2typeid, E.start_at, E.end_at, RE.fee as cost, D.numRequired as num, 	RE.name as description \
                             FROM	events E, dependencies D, resources_equipment RE \
-                            WHERE	E.eventid = 1 \
-                            AND	D.r1resourcetype = 'Equipment' \
-                            AND	D.r1typeid = 29 \
+                            WHERE	E.eventid = " + str(dfEvent['eventid'][0]) + " \
+                            AND	D.r1resourcetype = '" + str(dfResource['resourcetype'][0]) + "' \
+                            AND	D.r1typeid = " + str(dfResource['typeid'][0]) + " \
                             AND	D.r2resourcetype = RE.resourcetype \
                             AND	RE.typeid = D.r2typeid) AS VD \
                         WHERE (description, num) IN ( \
@@ -334,7 +348,7 @@ def bookRequiredResources(dfEvent: pandas.DataFrame, dfResource: pandas.DataFram
                                 FROM Dependencies D, resources_equipment RE \
                                 WHERE (D.r2resourcetype, D.r2typeID) = (RE.resourceType, RE.typeID) \
                                 AND D.r1resourceType = RE.resourceType \
-                                AND D.r1typeID = 29) AS VD \
+                                AND D.r1typeID = " + str(dfResource['typeid'][0]) + ") AS VD \
                             GROUP BY vd.name) ON CONFLICT (eventid, resourcetype, typeid) DO NOTHING;"
     functions.execute_db(qReqResources2Book)
 
@@ -353,6 +367,11 @@ def makeBooking(dfEvent: pandas.DataFrame, dfResource: pandas.DataFrame, qty: in
 
         qModifyEventListing = "UPDATE events SET location = '" + str(dfResource['address'][0]) + "' WHERE eventid = " + str(dfEvent['eventid'][0]) + ";"
         functions.execute_db(qModifyEventListing)
+    if(dfResource['resourcetype'][0] == 'Staff'):
+        qInsertBooking =   "INSERT INTO bookings VALUES (" + str(dfEvent['eventid'][0]) + ",'" + str(dfResource['resourcetype'][0]) + \
+                    "'," + str(dfResource['typeid'][0]) + ",'" + str(dfEvent['start_at'][0]) + "','" + str(dfEvent['end_at'][0]) + \
+                    "'," + str(dfResource['fee'][0]) + "," + str(qty) + ",'" + str(dfResource['email'][0]) + "')  ON CONFLICT (eventid, resourcetype, typeid) DO NOTHING;"
+        functions.execute_db(qInsertBooking)
     else:
         qInsertBooking =   "INSERT INTO bookings VALUES (" + str(dfEvent['eventid'][0]) + ",'" + str(dfResource['resourcetype'][0]) + \
                     "'," + str(dfResource['typeid'][0]) + ",'" + str(dfEvent['start_at'][0]) + "','" + str(dfEvent['end_at'][0]) + \

@@ -247,27 +247,34 @@ def show():
                     st.markdown("> You **DO** have a bartender booked for this event and **DO NOT** need to book another.")
                 else:
                     st.markdown('> ** YOU DO NOT HAVE A BARTENDER BOOKED FOR THIS EVENT AND MUST BOOK ONE BEFORE THE EVENT CAN BE APPROVED.')
-            else:
-                st.markdown("> Your event is not indicated to be over 21 only.  If you wish alcohol to be served at this event, you must book a bartender.")
 
-            if(bookings.)
+            if(bookings.IsElectricianRequired(dfSelectedEvent)):
+                st.markdown("> You have booked equpiment that requires a qualified electrical technician to safely install and operate.")
+                if(bookings.isBartenderBooked(dfSelectedEvent)):
+                    st.markdown("> You **DO** have an electrician booked for this event and **DO NOT** need to book another.")
+                else:
+                    st.markdown('> ** YOU DO NOT HAVE AN ELECTRICIAN BOOKED FOR THIS EVENT AND MUST BOOK ONE BEFORE THE EVENT CAN BE APPROVED.')
+
+            if not bookings.isMandatoryStaffPersonPresent(dfSelectedEvent):
+                st.markdown("> All events are required to book one mandatory staff person tasked with overseeing the event.  This is part of the terms of service for using this applicaiton.")
 
             st.markdown("##### In order for your event to be approved, it must pass these checks:")
             if(bookings.isMandatoryStaffPersonPresent(dfSelectedEvent)):
                 st.write(bookings.isMandatoryStaffPersonPresent(dfSelectedEvent))
                 st.markdown("You **DO** currently have the mandatory staff person employed for the event.")
             else:
-                st.markdown("You **DO NOT** currently have the mandatory staff person employed to oversee your event!")
-            if(bookings.isBartenderBooked(dfSelectedEvent)):
-                st.markdown("You **DO** currently have a bartender booked for this event.")
-            else:
-                st.markdown("You **DO NOT** currently have a bartender booked for this event.")
-            if(bookings.isElectricianPresent(dfSelectedEvent)):
+                st.markdown("You **DO NOT** currently have the mandatory staff person employed to supervise your event.")
+            if(bookings.isEvent_Over21(dfSelectedEvent)):
+                if(bookings.isBartenderBooked(dfSelectedEvent)):
+                    st.markdown("You **DO** currently have a bartender booked for this event.")
+                else:
+                    st.markdown("You **DO NOT** currently have a bartender booked for this event and require one.")
+            if(bookings.isElectricianPresent(dfSelectedEvent) and bookings.qIsElectricianRequired(dfSelectedEvent)):
                 st.markdown("You **DO** currently have an electrician booked for this event.")
             else:
-                st.markdown("You **DO NOT** currently have a electrician booked for this event.")
+                st.markdown("You **DO NOT** currently have a electrician booked for this event and require one.")
 
-
+            st.markdown("> Please note that an electrician can simultaneously supervise and event.")
 
             qQualificationsAvailable = "SELECT pg_enum.enumlabel FROM pg_enum, pg_type \
                              WHERE pg_type.oid = pg_enum.enumtypid AND pg_type.typname like 'qualification' \
@@ -281,6 +288,23 @@ def show():
             st.markdown("Here is a list of qualified, available staff for your event:")
             dfQualifiedStaffDisplay = dfQualifiedStaff[['first_name', 'last_name', 'qualification', 'fee']]
             st.write(dfQualifiedStaffDisplay)
+            dfQualifiedStaff['name'] = dfQualifiedStaff['first_name'] + dfQualifiedStaff['last_name']
+            # Selection box for venues
+            aAvailableID = dfQualifiedStaff['name'].tolist()
+            aAvailableKey = dfQualifiedStaff['typeid'].tolist()
+            dicAvailable = dict(zip(aAvailableKey, aAvailableID))
+            selectedResource = st.selectbox('Select a new venue you would like to book:', aAvailableKey, format_func= lambda x: dicAvailable[x])
+            
+            # Get selected resource details in case of booking
+            qSelectedResourceDetails = "SELECT * FROM resources_staff R WHERE R.typeid = " + str(selectedResource) + ";"
+            dfSelectedResourceDetails = functions.query_db(qSelectedResourceDetails)
+
+            st.write(dfSelectedResourceDetails)
+
+            st.markdown("##### Would you like to book this resource?")
+            if st.button('Reserve this Resource!'):
+                bookings.makeBooking(dfSelectedEvent, dfSelectedResourceDetails, 1)
+                st.markdown('Resource Booked!')
         elif(selectedResourceType == 'Venue'):
             # An event can only have one venue, therefore this option serves the let the user switch venues rather than book more!
             qExistingEventLocation = "SELECT V.name FROM events E, resources_venues V " + \
