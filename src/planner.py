@@ -30,13 +30,14 @@ def createUser(first: str, last: str, email: str, phone: str, pronoun: str):
                           );"
             functions.execute_db(qInsertUser)
 
-def createNewEvent(date: str, start_at: str, end_at: str, tzone: str, location: str, budget: str, event_name: str, ageQual: str):
+def createNewEvent(date: str, start_at: str, end_at: str, location: str, budget: str, email:str, event_name: str, ageQual: str):
             qInsertEvent = "INSERT INTO events VALUES ( nextval('custom_events'), \
                            '" + date + "', \
-                           '" + date + ' ' + start_at + tzone + "', \
-                           '" + date + ' ' + end_at + tzone + "', \
+                           '"+ start_at + "', \
+                           '" + end_at + "', \
                            '" + location + "', \
                            '" + budget + "', \
+                           '" + email + "', \
                            '" + event_name + "', \
                            '" + ageQual + "');"
             functions.execute_db(qInsertEvent)
@@ -54,6 +55,7 @@ def show():
     action = st.sidebar.selectbox("What do you want to do?", aEventPlannerActions)
 
     user = getUserID(user, dfEventPlannerNames)
+
     if(action == "Create a New User"):
         st.markdown("### User Creation Tool")
         st.markdown("All of the following fields are **required**.")
@@ -93,17 +95,27 @@ def show():
         if(aEventName):
             st.markdown("NB. For the purpose of this exercise, all pre-made events are in the month of December 2021. Custom events can be of any date.")
             aEventDate = st.date_input("Event Date")
-            st.write(aEventDate)
             aEventStart = st.time_input("Event Start Time:", value=datetime.time(12,00))
             aEventEnd = st.time_input("Event End Time:", value=datetime.time(13,00))
             
             # MAKE THE DATETIME TIME WINDOW FRAME
+            aTZlabels = ['US - Eastern Standard', 'US - Central Standard', 'US - Mountain Standard', 'US - Pacific Standard', 'US - Alaska Standard', 'US - Hawaii-Aleutian Standard']
+            aTZvalues = ['-05', '-06', '-07', '-08', '-09', '-10']
+            dicTimeZones = dict(zip(aTZvalues, aTZlabels))
+            selectedTZ = st.selectbox('Select the timezone for your event:', aTZvalues, format_func= lambda x: dicTimeZones[x])
             
             st.markdown("The option below will set the age limit for your event.  If an event is intended as an adult social event in which alcohol is served, you must mark this as 'True'.")
             aAgeQualifier = st.selectbox("Is this event for adults over 21 years of age only?", ['No', 'Yes'])
             
-            dfTimeFrame = pandas.DataFrame()
-            dfAllAvailable = bookings.getAllAvailableVenuesAtTime()
+            # Retrieve all available venues with the timeframe for the event
+            dicTimestamps = { 'date':[str(aEventDate)], 
+                              'start_at':[str(aEventDate) + ' ' + str(aEventStart) + selectedTZ], \
+                              'end_at':[str(aEventDate) + ' ' + str(aEventEnd) + selectedTZ], 
+                              'over21':[aAgeQualifier]}
+            dfEventTimeframe = pandas.DataFrame(data=dicTimestamps)
+            dfAllAvailable = bookings.getAllAvailableVenuesAtTime(dfEventTimeframe)  # Note, presence of a liquor license is folded in to the query if an event is marked as 'over 21' only.
+            dfAllAvailableDisplay = dfAllAvailable[['name', 'address', 'roomnum', 'capacity', 'stagearea', 'fee']]
+            st.write(dfAllAvailableDisplay)
 
             # Selection box for venues
             aAvailableID = dfAllAvailable['name'].tolist()
@@ -114,11 +126,15 @@ def show():
             # Get selected resource details in case of booking
             qSelectedResourceDetails = "SELECT * FROM resources_venues R WHERE R.typeid = " + str(selectedResource) + ";"
             dfSelectedResourceDetails = functions.query_db(qSelectedResourceDetails)
+
+            aEventBudget = st.text_input("What is your estimated budget for this event?")
              
 
             if(st.button("Create Event")):
+                createNewEvent(dfEventTimeframe['date'][0], dfEventTimeframe['start_at'][0], dfEventTimeframe['end_at'][0], \
+                                   dfSelectedResourceDetails['address'][0], str(aEventBudget), user, aEventName, dfEventTimeframe['over21'][0])
                 try:
-                    pass
+                    st.markdown('Event Created!')
                 except:
                     st.markdown("Hmmm.... something doesn't seem quite right about your event.  Check the input fields and try again.")
 

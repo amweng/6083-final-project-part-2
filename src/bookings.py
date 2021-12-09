@@ -43,19 +43,33 @@ def getAllAvailableEntertainers(eventID: int, resourceType: str, timeWindow: pan
                                 "WHERE B.overlaps = 'true') " + \
                                 "ORDER BY A.contentrating, A.fee, A.genre;"
     return functions.query_db_no_cache(qAllAvailableEntertainers)
+
 def getAllAvailableVenuesAtTime(timeWindow: pandas.DataFrame):
-    qAllAvailableVenuesAtTime = "SELECT V.* " + \
-                        "FROM resources_venues V " + \
-                        "WHERE typeid NOT IN (" + \
-                                "SELECT typeid " + \
-                                "FROM (" + \
-                                "SELECT ('" + str(timeWindow['start_at'][0]) + "','" + str(timeWindow['end_at'][0]) + "') " + \
-                                "OVERLAPS (B.start_at, B.end_at), B.typeid " + \
-                                "FROM bookings B " + \
-                                "WHERE B.resourcetype = 'Venue') B " + \
-                                "WHERE B.overlaps = 'true') " + \
-                        "ORDER BY V.capacity, V.address, V.roomnum;"
-    return functions.query_db_no_cache(qAllAvailableVenues)
+    if(timeWindow['over21'][0] == "Yes"):
+        # Here we make sure to only query for venues with liquor liscences
+         qAllAvailableVenuesAtTime = "SELECT 	V.* \
+                                FROM	resources_venues V \
+                                WHERE	typeid NOT IN ( \
+                                    SELECT typeid FROM ( \
+                                    SELECT ('" + str(timeWindow['start_at'][0]) + "','" + str(timeWindow['end_at'][0]) + "') \
+                                        OVERLAPS (B.start_at, B.end_at), B.typeid \
+                                    FROM bookings B \
+                                    WHERE b.RESOURCETYPE = 'Venue') B \
+                                    WHERE B.overlaps = 'true') \
+                                AND V.liquorlicense = 'True' \
+                                ORDER BY V.capacity, V.address, V.roomnum;"
+    else:
+        qAllAvailableVenuesAtTime = "SELECT 	V.* \
+                                    FROM	resources_venues V \
+                                    WHERE	typeid NOT IN ( \
+                                        SELECT typeid FROM ( \
+                                        SELECT ('" + str(timeWindow['start_at'][0]) + "','" + str(timeWindow['end_at'][0]) + "') \
+                                            OVERLAPS (B.start_at, B.end_at), B.typeid \
+                                        FROM bookings B \
+                                        WHERE b.RESOURCETYPE = 'Venue') B \
+                                        WHERE B.overlaps = 'true') \
+                                    ORDER BY V.capacity, V.address, V.roomnum;"
+    return functions.query_db_no_cache(qAllAvailableVenuesAtTime)
 
 def getAllAvailableVenues(eventID: int, resourceType: str, timeWindow: pandas.DataFrame):
     qAllAvailableVenues = "SELECT V.* " + \
