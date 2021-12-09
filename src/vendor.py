@@ -162,7 +162,10 @@ def show_requirements_section(resource_type, type_id):
             df_required = df_required.append(row)
 
             # use a non-cached execution function to execute our insert statment
-            functions.execute_db(q_require)
+            try:
+                functions.execute_db(q_require)
+            except Exception:
+                st.write("You already listed this as a requirement.")
 
     return
 
