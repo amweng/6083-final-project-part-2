@@ -334,22 +334,24 @@ def bookRequiredResources(dfEvent: pandas.DataFrame, dfResource: pandas.DataFram
                             WHERE (D.r2resourceType, D.r2typeID) = (RR.r1resourceType, RR.r1typeID) \
                             AND (D.r1resourceType, D.r1typeID) != (D.r2resourceType, D.r2typeID))    \
                         INSERT INTO bookings \
-                        SELECT * FROM ( \
-                            SELECT E.eventid, D.r2resourcetype, D.r2typeid, E.start_at, E.end_at, RE.fee as cost, D.numRequired as num, 	RE.name as description \
-                            FROM	events E, dependencies D, resources_equipment RE \
-                            WHERE	E.eventid = " + str(dfEvent['eventid'][0]) + " \
-                            AND	D.r1resourcetype = '" + str(dfResource['resourcetype'][0]) + "' \
-                            AND	D.r1typeid = " + str(dfResource['typeid'][0]) + " \
-                            AND	D.r2resourcetype = RE.resourcetype \
-                            AND	RE.typeid = D.r2typeid) AS VD \
+                        SELECT E.eventid, R.r2resourcetype as resourcetype, R.r2typeid as typeid, E.start_at, E.end_at, R.cost, R.num, R.description \
+                        FROM	(SELECT D.r2resourcetype, D.r2typeid, RE.fee as cost, D.numRequired as num, RE.name as description \
+                                FROM	dependencies D, resources_equipment RE \
+                                WHERE	D.r1resourcetype = '" + str(dfResource['resourcetype'][0]) + "' \
+                                AND	D.r1typeid = " + str(dfResource['typeid'][0]) + " \
+                                AND	D.r2resourcetype = RE.resourcetype \
+                                AND	RE.typeid = D.r2typeid) R, \
+                                (SELECT 	eventid, start_at, end_at \
+                                FROM	events \
+                                WHERE	eventid = " + str(dfEvent['eventid'][0]) + ") E \
                         WHERE (description, num) IN ( \
                             SELECT vd.name, MAX(vd.numRequired) \
                             FROM (SELECT RE.name, D.numRequired \
                                 FROM Dependencies D, resources_equipment RE \
                                 WHERE (D.r2resourcetype, D.r2typeID) = (RE.resourceType, RE.typeID) \
-                                AND D.r1resourceType = RE.resourceType \
+                                AND D.r1resourceType = '" + str(dfResource['resourcetype'][0]) + "' \
                                 AND D.r1typeID = " + str(dfResource['typeid'][0]) + ") AS VD \
-                            GROUP BY vd.name) ON CONFLICT (eventid, resourcetype, typeid) DO NOTHING;"
+                        GROUP BY vd.name) ON CONFLICT (eventid, resourcetype, typeid) DO NOTHING;"
     functions.execute_db(qReqResources2Book)
 
 def makeBooking(dfEvent: pandas.DataFrame, dfResource: pandas.DataFrame, qty: int=1):
