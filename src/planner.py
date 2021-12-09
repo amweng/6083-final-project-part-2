@@ -22,19 +22,45 @@ def getUserName(userEmail: str, users: pandas.DataFrame):
 
 def show():
     qEventPlanners = "SELECT email, first_name, last_name FROM event_planners;"
-    dfEventPlannerNames = functions.query_db(qEventPlanners)
+    dfEventPlannerNames = functions.query_db_no_cache(qEventPlanners)
     dfEventPlannerNames['name'] = (dfEventPlannerNames['first_name'] \
         + ' ' + dfEventPlannerNames['last_name'] + " (" + dfEventPlannerNames['email'] + ')')
     aEventPlannerNames = dfEventPlannerNames['name'].tolist()
     user = st.sidebar.selectbox("Who are you?", aEventPlannerNames)
     userName = user
 
-    aEventPlannerActions = ["Make a New Event", "View Your Events", "Book Resources", "Cancel Resource Booking", "Cancel an Event"]
+    aEventPlannerActions = ["Create a New User","Make a New Event", "View Your Events", "Book Resources", "Cancel Resource Booking", "Cancel an Event"]
     action = st.sidebar.selectbox("What do you want to do?", aEventPlannerActions)
 
     user = getUserID(user, dfEventPlannerNames)
+    if(action == "Create a New User"):
+        def createUser(first: str, last: str, email: str, phone: str, pronoun: str):
+            qInsertUser = "INSERT INTO event_planners VALUES (\
+                           '" + first + "', \
+                           '" + last + "', \
+                           '" + email + "', \
+                           '" + phone + "', \
+                           '" + pronoun + "' \
+                          );"
+            functions.execute_db(qInsertUser)
 
-    if(action == "Make a New Event"):
+        st.markdown("### User Creation Tool")
+        st.markdown("All of the following fields are **required**.")
+        aFirstName = st.text_input("First Name:")
+        aLastName = st.text_input("Last Name:")
+        aEmail = st.text_input("Your E-Mail Address:")
+        aPhone = st.text_input("Your Contact Number:")
+        aPronoun = st.selectbox("Your Preferred Pronouns:",["She / Her", "He / Him", "They, Them", "Please Ask Directly", "Decline To Answer"])
+
+        if(st.button("Create New User")):
+            try:
+                createUser(aFirstName,aLastName,aEmail,aPhone,aPronoun)
+                st.markdown('User Created.')
+                st.markdown("You may need to refresh the page in order for them to show up in the selection box at left.")
+            except:
+                st.markdown("It looks like something wasn't quite right with your input.  Check your responses and try again.")
+
+    elif(action == "Make a New Event"):
         st.markdown(" #### Your currently booked events: ")
 
         # Find all events possessed by the selected user
@@ -58,9 +84,15 @@ def show():
             aEventDate = st.date_input("Event Date")
             aEventStart = st.time_input("Event Start Time:", value=datetime.time(12,00))
             aEventEnd = st.time_input("Event End Time:", value=datetime.time(13,00))
+            
+            st.markdown("The option below will set the age limit for your event.  If an event is intended as an adult social event in which alcohol is served, you must mark this as 'True'.")
+            aAgeQualifier = st.selectbox("Is this event for adults over 21 years of age only?", ['Yes', 'No'])
 
-            if(aEventStart and aEventEnd):
-                st.write('foo')
+            if(st.button("Create Event")):
+                try:
+                    pass
+                except:
+                    st.markdown("Hmmm.... something doesn't seem quite right about your event.  Check the input fields and try again.")
 
 
 
