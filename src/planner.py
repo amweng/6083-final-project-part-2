@@ -126,9 +126,18 @@ def show():
         dfAllAvailable = bookings.getAllAvailable(dfSelectedEvent['eventid'][0],selectedResourceType, dfSelectedEvent)
         
         if(selectedResourceType == 'Caterer'):
-            dfAllAvailableDisplay = dfAllAvailable[['name', 'fee']]
-            st.markdown('#### Here is a list of all available caterers for your event:')
-            st.table(dfAllAvailableDisplay)
+            st.markdown("### Your Guests' Dietary Restrictions")
+            st.markdown('The following is a list of all dietary restrictions reported by your guests:')
+            dfMenuRequirements = bookings.getAllDietaryRestrictions(dfSelectedEvent)
+            st.write(dfMenuRequirements)
+
+            st.markdown("### Accomodating Menus")
+            st.markdown('The following is a ranked list of menus provided by the caterers in our database that are specified to accomodate the above restrictions.' +
+                        'Please note that accomodation of dietary restrictions is an ad hoc process.  All caterers are capable of accomodating dietary restrictions \
+                        to some degree.  However, not all dietary restrictions can be accomodated.  Once you have settled on a caterer you feel bests fits your event\'s \
+                        set of restrictions, we encourage you to contact the caterer directly with further questions.')
+            dfMenuAccomodations = bookings.getAllAccomodatingMenus(dfSelectedEvent)
+            st.write(dfMenuAccomodations)
             
             # Selection box for caterers
             aAvailableID = dfAllAvailable['name'].tolist()
@@ -141,6 +150,14 @@ def show():
             dfSelectedResourceDetails = functions.query_db(qSelectedResourceDetails)
 
             st.write(dfSelectedResourceDetails)
+
+            st.markdown('The caterer you have selected offers the following menus which specifically accomodate known restrictions in your guest list: ')
+            dfSelectedCatererMenus = bookings.getCaterersAccomodatingMenus(dfSelectedEvent, dfSelectedResourceDetails)
+            st.write(dfSelectedCatererMenus)
+
+            st.markdown('Here is a list of all of the caterer\'s menus, along with any restrictions they accomodate:')
+            dfAllSelectedCatererMenus = bookings.getAllCatererMenusPlusAccomodations(dfSelectedEvent, dfSelectedResourceDetails)
+            st.write(dfAllSelectedCatererMenus)
 
             st.markdown("Booking this Caterer will automatically create the following additional bookings: ")
             df_vendor_eq_req = bookings.getVendorEquipmentReq(dfSelectedResourceDetails['resourcetype'][0],dfSelectedResourceDetails['typeid'][0])

@@ -240,6 +240,55 @@ def isElectricianPresent(timeWindow: pandas.DataFrame):
     else:
         return False
 
+def getAllDietaryRestrictions(dfEvent: pandas.DataFrame):
+    qAllDietaryRestrictions = "SELECT 	GA.eventid, GA.email, DR.restriction, DR.severity \
+                            FROM	guests_attend GA, dietary_restrictions_have DR \
+                            WHERE	GA.eventid = '" + str(dfEvent['eventid'][0]) + "' \
+                            AND	GA.email = DR.email \
+                            ORDER BY restriction, severity, email;"
+    return functions.query_db(qAllDietaryRestrictions)
+
+def getAllAccomodatingMenus(dfEvent: pandas.DataFrame):
+    qAllAccomodatingMenus = "SELECT  MO.menuid, MO.name, MO.caterer_name, count(MA.accommodation) as accommodation_rank \
+                            FROM	menus_offered MO, menus_accommodate MA \
+                            WHERE	MO.menuid = MA.menuid \
+                            AND	MA.accommodation IN ( SELECT 	DR.restriction \
+                                FROM	guests_attend GA, dietary_restrictions_have DR \
+                                WHERE	GA.eventid = '" + str(dfEvent['eventid'][0]) + "' \
+                                AND	GA.email = DR.email) \
+                            AND MO.caterer_name IN ( \
+                                SELECT name FROM resources_caterers \
+                                EXCEPT \
+                                SELECT description as name \
+                                FROM bookings \
+                                WHERE resourcetype = 'Caterer' \
+                                AND ('" + str(dfEvent['start_at'][0]) + "','" + str(dfEvent['end_at'][0]) + "') \
+                                    OVERLAPS (bookings.start_at, bookings.end_at)) \
+                            GROUP BY MO.menuid, MO.name, MO.caterer_name \
+                            ORDER BY accommodation_rank DESC, menuid, name;"
+    return functions.query_db(qAllAccomodatingMenus)
+
+def getCaterersAccomodatingMenus(dfEvent: pandas.DataFrame, dfResource: pandas.DataFrame):
+    qCaterersAccomodatingMenus = "SELECT  MO.menuid, MO.name, MA.accommodation \
+                                FROM	menus_offered MO, menus_accommodate MA \
+                                WHERE	MO.menuid = MA.menuid \
+                                AND	MA.accommodation IN ( SELECT 	DR.restriction \
+                                    FROM	guests_attend GA, dietary_restrictions_have DR \
+                                    WHERE	GA.eventid = " + str(dfEvent['eventid'][0]) + " \
+                                    AND	GA.email = DR.email) \
+                                AND	MO.name = '" + str(dfResource['name'][0]) + "' \
+                                ORDER BY MA.accommodation;"
+    return functions.query_db(qCaterersAccomodatingMenus)
+
+def getAllCatererMenusPlusAccomodations(dfEvent: pandas.DataFrame, dfResource: pandas.DataFrame):
+    qAllCatererMenusPlusAccomodations = "SELECT menuid, name, accommodation FROM ( \
+                                            SELECT 	MO.menuid, MO.name, MO.caterer_name, MA.accommodation \
+                                            FROM	menus_offered MO full join menus_accommodate MA \
+                                            ON	MO.menuid = MA.menuid) A \
+                                        WHERE caterer_name = '" + str(dfResource['name'][0]) + "' \
+                                        ORDER BY name;"
+    return functions.query_db(qAllCatererMenusPlusAccomodations)
+
 def bookRequiredResources(dfEvent: pandas.DataFrame, dfResource: pandas.DataFrame):
     # This code adapts Andrew's brilliant getVendorEquipmentReq() code into an iterative query for batch insertion
     # For the attentive reader interested in some specifics, note that the syntax is, broadly, 'INSERT INTO bookings () on conflict do nothing;'
