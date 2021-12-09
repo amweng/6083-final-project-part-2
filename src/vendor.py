@@ -37,6 +37,9 @@ def show_caterer_view():
 
     type_id = a_vendor_ids[a_vendor_names.index(vendor_name)]
 
+    st.write('### My reservations')
+    show_my_reservervations(resource_type, type_id)
+
     st.write('### My menus')
     q_menus_accom = "SELECT m.name, m.description, a.accommodation FROM menus_offered m LEFT JOIN menus_accommodate a "\
                     + "ON m.menuid = a.menuid WHERE m.caterer_name = \'" + vendor_name.replace("'", "''") + "\';"
@@ -52,15 +55,15 @@ def show_entertainment_view():
     vendor_type = "Entertainment"
     resource_type = vendor_type
 
-    st.write('### My gigs')
-    st.write('Coming soon')
-
     q_vendors = "SELECT resourceType, typeid, name, genre FROM resources_" + vendor_type + ";"
     df_vendors = functions.query_db(q_vendors)
     a_vendor_names = df_vendors['name'].tolist()
     a_vendor_ids = df_vendors['typeid'].tolist()
     vendor_name = st.sidebar.selectbox("Who are you?", a_vendor_names)
     type_id = a_vendor_ids[a_vendor_names.index(vendor_name)]
+
+    st.write('### My events')
+    show_my_reservervations(resource_type, type_id)
 
     show_requirements_section(resource_type, type_id)
 
@@ -69,9 +72,6 @@ def show_venue_view():
     vendor_type = "Venues"
     resource_type = "Venue"
 
-    st.write('### My reservations')
-    st.write('Coming soon')
-
     q_vendors = "SELECT resourceType, typeid, name, address FROM resources_" + vendor_type + ";"
     df_vendors = functions.query_db(q_vendors)
     a_vendor_names = df_vendors['name'].tolist()
@@ -79,6 +79,9 @@ def show_venue_view():
     vendor_name = st.sidebar.selectbox("Who are you?", a_vendor_names)
 
     type_id = a_vendor_ids[a_vendor_names.index(vendor_name)]
+
+    st.write('### My reservations')
+    show_my_reservervations(resource_type, type_id)
 
     show_requirements_section(resource_type, type_id)
 
@@ -99,6 +102,10 @@ def show_requirements_section(resource_type, type_id):
         st.dataframe(df_required.rename(columns={'name': 'Equipment', 'numrequired': 'Quantity', 'specification': 'Description'}))
     else:
         st.dataframe(df_required.rename(columns={'name': 'Equipment', 'numrequired': 'Quantity', 'specification': 'Description'}))
+
+    if len(df_required) == 0:
+        st.write("You haven't specified any requirements yet. Add equipment that you require so that we can arrange"
+                 " for it to be at the venue when you arrive.")
 
     st.write('#### Add requirement')
 
@@ -158,3 +165,16 @@ def show_requirements_section(resource_type, type_id):
             functions.execute_db(q_require)
 
     return
+
+
+def show_my_reservervations(resourceType: str, typeID: int):
+    q_vendor_events = "SELECT eventID, start_at, end_at, cost" \
+                " FROM bookings" \
+                " WHERE resourceType = '" + resourceType + "'" \
+                " AND typeID = " + str(typeID) + ";"
+    df_vendor_events = functions.query_db_no_cache(q_vendor_events)
+    df_vendor_events = df_vendor_events.rename(columns={'eventid': 'Event ID', 'start_at': 'Start time',
+                                                        'end_at': 'End time','cost': 'fee'})
+    st.dataframe(df_vendor_events.style.format(subset=['fee'], formatter="{:.2f}"))
+    return
+
