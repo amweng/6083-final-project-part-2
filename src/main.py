@@ -8,10 +8,10 @@ import matplotlib.pyplot as plt
 
 import planner
 import vendor
-import manager
+import ceo
 
 # Page Contents
-page = st.sidebar.selectbox("Navigation panel:", ["Planner", "Vendor", "Manager"])
+page = st.sidebar.selectbox("Navigation panel:", ["Planner", "Vendor", "CEO"])
 
 if page == "Planner":
     planner.show()
@@ -19,5 +19,5 @@ if page == "Planner":
 elif page == "Vendor":
     vendor.show()
 
-elif page == "Manager":
-    manager.show()
+elif page == "CEO":
+    ceo.show()
