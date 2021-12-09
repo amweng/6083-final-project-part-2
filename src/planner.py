@@ -20,6 +20,27 @@ def getUserName(userEmail: str, users: pandas.DataFrame):
     aUserName = dfUserRow['name'].tolist()[0]
     return aUserName
 
+def createUser(first: str, last: str, email: str, phone: str, pronoun: str):
+            qInsertUser = "INSERT INTO event_planners VALUES (\
+                           '" + first + "', \
+                           '" + last + "', \
+                           '" + email + "', \
+                           '" + phone + "', \
+                           '" + pronoun + "' \
+                          );"
+            functions.execute_db(qInsertUser)
+
+def createNewEvent(date: str, start_at: str, end_at: str, tzone: str, location: str, budget: str, event_name: str, ageQual: str):
+            qInsertEvent = "INSERT INTO events VALUES ( nextval('custom_events'), \
+                           '" + date + "', \
+                           '" + date + ' ' + start_at + tzone + "', \
+                           '" + date + ' ' + end_at + tzone + "', \
+                           '" + location + "', \
+                           '" + budget + "', \
+                           '" + event_name + "', \
+                           '" + ageQual + "');"
+            functions.execute_db(qInsertEvent)
+
 def show():
     qEventPlanners = "SELECT email, first_name, last_name FROM event_planners;"
     dfEventPlannerNames = functions.query_db_no_cache(qEventPlanners)
@@ -34,16 +55,6 @@ def show():
 
     user = getUserID(user, dfEventPlannerNames)
     if(action == "Create a New User"):
-        def createUser(first: str, last: str, email: str, phone: str, pronoun: str):
-            qInsertUser = "INSERT INTO event_planners VALUES (\
-                           '" + first + "', \
-                           '" + last + "', \
-                           '" + email + "', \
-                           '" + phone + "', \
-                           '" + pronoun + "' \
-                          );"
-            functions.execute_db(qInsertUser)
-
         st.markdown("### User Creation Tool")
         st.markdown("All of the following fields are **required**.")
         aFirstName = st.text_input("First Name:")
@@ -80,13 +91,30 @@ def show():
 
         # Event Name
         if(aEventName):
-            st.markdown("NB. For the purpose of this exercise, all pre-made events are in the month of December 2021. Custom events can be of any date, however.")
+            st.markdown("NB. For the purpose of this exercise, all pre-made events are in the month of December 2021. Custom events can be of any date.")
             aEventDate = st.date_input("Event Date")
+            st.write(aEventDate)
             aEventStart = st.time_input("Event Start Time:", value=datetime.time(12,00))
             aEventEnd = st.time_input("Event End Time:", value=datetime.time(13,00))
             
+            # MAKE THE DATETIME TIME WINDOW FRAME
+            
             st.markdown("The option below will set the age limit for your event.  If an event is intended as an adult social event in which alcohol is served, you must mark this as 'True'.")
-            aAgeQualifier = st.selectbox("Is this event for adults over 21 years of age only?", ['Yes', 'No'])
+            aAgeQualifier = st.selectbox("Is this event for adults over 21 years of age only?", ['No', 'Yes'])
+            
+            dfTimeFrame = pandas.DataFrame()
+            dfAllAvailable = bookings.getAllAvailableVenuesAtTime()
+
+            # Selection box for venues
+            aAvailableID = dfAllAvailable['name'].tolist()
+            aAvailableKey = dfAllAvailable['typeid'].tolist()
+            dicAvailable = dict(zip(aAvailableKey, aAvailableID))
+            selectedResource = st.selectbox('Select a new venue you would like to book:', aAvailableKey, format_func= lambda x: dicAvailable[x])
+            
+            # Get selected resource details in case of booking
+            qSelectedResourceDetails = "SELECT * FROM resources_venues R WHERE R.typeid = " + str(selectedResource) + ";"
+            dfSelectedResourceDetails = functions.query_db(qSelectedResourceDetails)
+             
 
             if(st.button("Create Event")):
                 try:

@@ -43,6 +43,19 @@ def getAllAvailableEntertainers(eventID: int, resourceType: str, timeWindow: pan
                                 "WHERE B.overlaps = 'true') " + \
                                 "ORDER BY A.contentrating, A.fee, A.genre;"
     return functions.query_db_no_cache(qAllAvailableEntertainers)
+def getAllAvailableVenuesAtTime(timeWindow: pandas.DataFrame):
+    qAllAvailableVenuesAtTime = "SELECT V.* " + \
+                        "FROM resources_venues V " + \
+                        "WHERE typeid NOT IN (" + \
+                                "SELECT typeid " + \
+                                "FROM (" + \
+                                "SELECT ('" + str(timeWindow['start_at'][0]) + "','" + str(timeWindow['end_at'][0]) + "') " + \
+                                "OVERLAPS (B.start_at, B.end_at), B.typeid " + \
+                                "FROM bookings B " + \
+                                "WHERE B.resourcetype = 'Venue') B " + \
+                                "WHERE B.overlaps = 'true') " + \
+                        "ORDER BY V.capacity, V.address, V.roomnum;"
+    return functions.query_db_no_cache(qAllAvailableVenues)
 
 def getAllAvailableVenues(eventID: int, resourceType: str, timeWindow: pandas.DataFrame):
     qAllAvailableVenues = "SELECT V.* " + \
@@ -50,7 +63,7 @@ def getAllAvailableVenues(eventID: int, resourceType: str, timeWindow: pandas.Da
                         "WHERE V.capacity > (" + \
                             "SELECT count(*) " + \
                             "FROM guests_attend G " + \
-                            "WHERE G.eventid = 7) " + \
+                            "WHERE G.eventid = " + str(eventID) + ") " + \
                         "AND V.stagearea > (" + \
                             "SELECT COALESCE(MAX(E.spacerequired),0) " + \
                             "FROM bookings B, resources_entertainment E " + \

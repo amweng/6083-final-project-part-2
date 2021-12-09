@@ -39,6 +39,8 @@ CREATE TABLE Events (
 	FOREIGN KEY (event_planner_email) REFERENCES Event_Planners (email)
 );
 
+CREATE SEQUENCE custom_events START 100;
+
 CREATE TABLE Guests_Attend (
 	eventID			integer,
 	email			varchar(128),
