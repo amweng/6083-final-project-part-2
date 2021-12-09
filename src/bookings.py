@@ -408,7 +408,5 @@ def deleteBooking(dfEvent: pandas.DataFrame, dfResource: pandas.DataFrame):
     functions.execute_db(qDeleteBooking)
 
 def deleteEvent(dfEvent: pandas.DataFrame):
-    qDeleteEventBookings = "DELETE FROM bookings WHERE eventid = " + str(dfEvent['eventid'][0]) + ";"
     qDeleteEventListing = "DELETE FROM events WHERE eventid = " + str(dfEvent['eventid'][0]) + ";"
-    functions.execute_db(qDeleteEventBookings)
     functions.execute_db(qDeleteEventListing)

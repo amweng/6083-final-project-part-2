@@ -51,7 +51,7 @@ CREATE TABLE Guests_Attend (
 	under_21		boolean DEFAULT false,
 	UNIQUE(eventID,email),
 	PRIMARY KEY (eventID,email),
-	FOREIGN KEY (eventID) REFERENCES Events(eventID)
+	FOREIGN KEY (eventID) REFERENCES Events(eventID) ON DELETE CASCADE
 );
 
 CREATE TABLE Dietary_Restrictions_Have (

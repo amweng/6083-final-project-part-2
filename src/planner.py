@@ -35,12 +35,40 @@ def show():
     user = getUserID(user, dfEventPlannerNames)
 
     if(action == "Make a New Event"):
-        pass
+        st.markdown(" #### Your currently booked events: ")
+
+        # Find all events possessed by the selected user
+        qFetchEvents = "SELECT * FROM events E WHERE E.event_planner_email LIKE '" + user + \
+            "' ORDER BY date, start_at;"
+        dfEventsAll = functions.query_db_no_cache(qFetchEvents)
+        
+        # Give the user a quick glance of all their created events
+        dfEventsSurvey = dfEventsAll[['date', 'start_at', 'end_at', 'event_name']]
+        for idx in range(len(dfEventsSurvey['start_at'])):
+            dfEventsSurvey['start_at'][idx] = functions.pd_timestamp_to_dt_with_tz(dfEventsSurvey['start_at'][idx])
+            dfEventsSurvey['end_at'][idx] = dfEventsSurvey['end_at'][idx].isoformat()
+        st.table(dfEventsSurvey)
+
+        st.markdown("#### Event Information:")
+        aEventName = st.text_input('Event Name: ')
+
+        # Event Name
+        if(aEventName):
+            st.markdown("NB. For the purpose of this exercise, all pre-made events are in the month of December 2021. Custom events can be of any date, however.")
+            aEventDate = st.date_input("Event Date")
+            aEventStart = st.time_input("Event Start Time:", value=datetime.time(12,00))
+            aEventEnd = st.time_input("Event End Time:", value=datetime.time(13,00))
+
+            if(aEventStart and aEventEnd):
+                st.write('foo')
+
+
+
     elif(action == "View Your Events"):
         # Find all events possessed by the selected user
         qFetchEvents = "SELECT * FROM events E WHERE E.event_planner_email LIKE '" + user + \
             "' ORDER BY date, start_at;"
-        dfEventsAll = functions.query_db(qFetchEvents)
+        dfEventsAll = functions.query_db_no_cache(qFetchEvents)
         
         # Give the user a quick glance of all their created events
         st.markdown("### All events planned by " + userName + ":")
@@ -54,7 +82,7 @@ def show():
         # fetch the list of all events
         qFetchEvents = "SELECT * FROM events E WHERE E.event_planner_email LIKE '" + user + \
             "' ORDER BY date, start_at;"
-        dfEventsAll = functions.query_db(qFetchEvents)
+        dfEventsAll = functions.query_db_no_cache(qFetchEvents)
 
         if(dfEventsAll.empty):
             st.markdown("Hello, new user!  Select 'Make an Event' to create a new event!")
@@ -69,7 +97,7 @@ def show():
         # use the selected event to extract the event row for the selected event
         qSelectedDetails = "SELECT * FROM events E WHERE E.event_planner_email LIKE '" + user + \
                             "' AND eventid = " + str(selectedEvent) + " ORDER BY date, start_at;"
-        dfSelectedEvent = functions.query_db(qSelectedDetails)
+        dfSelectedEvent = functions.query_db_no_cache(qSelectedDetails)
 
         # For each event, display the location details
         st.markdown('### Locations for all events:')
@@ -84,7 +112,7 @@ def show():
         # fetch the list of all events
         qFetchEvents = "SELECT * FROM events E WHERE E.event_planner_email LIKE '" + user + \
             "' ORDER BY date, start_at;"
-        dfEventsAll = functions.query_db(qFetchEvents)
+        dfEventsAll = functions.query_db_no_cache(qFetchEvents)
 
         if(dfEventsAll.empty):
             st.markdown("Hello, new user!  Select 'Make an Event' to create a new event!")
@@ -99,7 +127,7 @@ def show():
         # use the selected event to extract the event row for the selected event
         qSelectedDetails = "SELECT * FROM events E WHERE E.event_planner_email LIKE '" + user + \
                             "' AND eventid = " + str(selectedEvent) + " ORDER BY date, start_at;"
-        dfSelectedEvent = functions.query_db(qSelectedDetails)
+        dfSelectedEvent = functions.query_db_no_cache(qSelectedDetails)
 
         # Get the list of all resources already booked for this event
         qBookedResources = "SELECT B.description, B.resourcetype, B.cost, B.start_at, B.end_at FROM bookings B WHERE eventid = " + str(dfSelectedEvent['eventid'][0]) + ";"
@@ -349,7 +377,7 @@ def show():
         # fetch the list of all events
         qFetchEvents = "SELECT * FROM events E WHERE E.event_planner_email LIKE '" + user + \
             "' ORDER BY date, start_at;"
-        dfEventsAll = functions.query_db(qFetchEvents)
+        dfEventsAll = functions.query_db_no_cache(qFetchEvents)
 
         if(dfEventsAll.empty):
             st.markdown("Hello, new user!  Select 'Make an Event' to create a new event!")
@@ -364,7 +392,7 @@ def show():
         # use the selected event to extract the event row for the selected event
         qSelectedDetails = "SELECT * FROM events E WHERE E.event_planner_email LIKE '" + user + \
                             "' AND eventid = " + str(selectedEvent) + " ORDER BY date, start_at;"
-        dfSelectedEvent = functions.query_db(qSelectedDetails)
+        dfSelectedEvent = functions.query_db_no_cache(qSelectedDetails)
         
         # Get the list of all resources already booked for this event
         qBookedResources = "SELECT B.description, B.resourcetype, B.typeid, B.cost, B.start_at, B.end_at FROM bookings B WHERE eventid = " + str(dfSelectedEvent['eventid'][0]) + ";"
@@ -407,7 +435,7 @@ def show():
         # fetch the list of all events
         qFetchEvents = "SELECT * FROM events E WHERE E.event_planner_email LIKE '" + user + \
             "' ORDER BY date, start_at;"
-        dfEventsAll = functions.query_db(qFetchEvents)
+        dfEventsAll = functions.query_db_no_cache(qFetchEvents)
 
         if(dfEventsAll.empty):
             st.markdown("Hello, new user!  Select 'Make an Event' to create a new event!")
@@ -419,9 +447,15 @@ def show():
         dic = dict(zip(aEventSelectID, aEventSelectName))
         selectedEvent = st.selectbox('Select an event you would like to cancel:', aEventSelectID, format_func=lambda x: dic[x])
 
-        # use the selected event to extract the event row for the selected event
-        qSelectedDetails = "SELECT * FROM events E WHERE E.event_planner_email LIKE '" + user + \
-                            "' AND eventid = " + str(selectedEvent) + " ORDER BY date, start_at;"
-        dfSelectedEvent = functions.query_db(qSelectedDetails)
-        pass
+        try:
+            # use the selected event to extract the event row for the selected event
+            qSelectedDetails = "SELECT * FROM events E WHERE E.event_planner_email LIKE '" + user + \
+                                "' AND eventid = " + str(selectedEvent) + " ORDER BY date, start_at;"
+            dfSelectedEvent = functions.query_db_no_cache(qSelectedDetails)
+            
+            if (st.button('Cancel this Event')):
+                bookings.deleteEvent(dfSelectedEvent)
+                st.markdown('Your Event Has Been Cancelled.')
+        except:
+            st.markdown('It appears you have no events currently!')
     
