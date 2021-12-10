@@ -430,7 +430,7 @@ def show():
 
             st.markdown("Booking this Caterer will automatically create the following additional bookings: ")
             df_vendor_eq_req = bookings.getVendorEquipmentReq(dfSelectedResourceDetails['resourcetype'][0],dfSelectedResourceDetails['typeid'][0])
-            st.dataframe(df_vendor_eq_req.style.format(subset=['fee'], formatter="{:.2f}"))
+            st.dataframe(df_vendor_eq_req.style.format(subset=['fee'], formatter="${:.2f}"))
 
 
             st.markdown("##### Would you like to book this resource?")
@@ -461,7 +461,7 @@ def show():
 
             st.markdown("Booking this Entertainer will automatically create the following additional bookings: ")
             df_vendor_eq_req = bookings.getVendorEquipmentReq(dfSelectedResourceDetails['resourcetype'][0],dfSelectedResourceDetails['typeid'][0])
-            st.dataframe(df_vendor_eq_req.style.format(subset=['fee'], formatter="{:.2f}"))
+            st.dataframe(df_vendor_eq_req.style.format(subset=['fee'], formatter="${:.2f}"))
 
             st.markdown("##### Would you like to book this resource?")
             if st.button('Reserve this Resource!'):
@@ -486,7 +486,7 @@ def show():
             qSelectedResourceDetails = "SELECT * FROM resources_equipment R WHERE R.typeid = " + str(selectedResource) + ";"
             dfSelectedResourceDetails = functions.query_db(qSelectedResourceDetails)
 
-            st.dataframe(dfSelectedResourceDetails.style.format(subset=['fee'], formatter="{:.2f}"))
+            st.dataframe(dfSelectedResourceDetails.style.format(subset=['fee'], formatter="${:.2f}"))
 
 
             # my implmentation of this function differs slightly in that: If two resources require the same piece
@@ -509,41 +509,6 @@ def show():
                 st.markdown('Resource Booked!')
 
         elif(selectedResourceType == 'Staff'):
-            st.markdown('### Staff Requirements for your event:')
-            if(bookings.isEvent_Over21(dfSelectedEvent)):
-                st.markdown("> You have indicated that the audience for your event be over 21.")
-                if(bookings.isBartenderBooked(dfSelectedEvent)):
-                    st.markdown("> You **DO** have a bartender booked for this event and **DO NOT** need to book another.")
-                else:
-                    st.markdown('> YOU DO NOT HAVE A BARTENDER BOOKED FOR THIS EVENT AND MUST BOOK ONE.')
-
-            if(bookings.IsElectricianRequired(dfSelectedEvent)):
-                st.markdown("> You have booked equpiment that requires a qualified electrical technician to safely install and operate.")
-                if(bookings.isBartenderBooked(dfSelectedEvent)):
-                    st.markdown("> You **DO** have an electrician booked for this event and **DO NOT** need to book another.")
-                else:
-                    st.markdown('> ** YOU DO NOT HAVE AN ELECTRICIAN BOOKED FOR THIS EVENT AND MUST BOOK ONE BEFORE THE EVENT CAN BE APPROVED.')
-
-            if bookings.isMandatoryStaffPersonPresent(dfSelectedEvent):
-                st.markdown("> All events are required to book one mandatory staff person tasked with overseeing the event.  This is part of the terms of service for using this applicaiton.")
-
-            st.markdown("##### In order for your event to be approved, it must pass these checks:")
-            if(bookings.isMandatoryStaffPersonPresent(dfSelectedEvent)):
-                st.write(bookings.isMandatoryStaffPersonPresent(dfSelectedEvent))
-                st.markdown("You **DO** currently have the mandatory staff person employed for the event.")
-            else:
-                st.markdown("You **DO NOT** currently have the mandatory staff person employed to supervise your event.")
-            if(bookings.isEvent_Over21(dfSelectedEvent)):
-                if(bookings.isBartenderBooked(dfSelectedEvent)):
-                    st.markdown("You **DO** currently have a bartender booked for this event.")
-                else:
-                    st.markdown("You **DO NOT** currently have a bartender booked for this event and require one.")
-            if(bookings.isElectricianPresent(dfSelectedEvent) and bookings.qIsElectricianRequired(dfSelectedEvent)):
-                st.markdown("You **DO** currently have an electrician booked for this event.")
-            else:
-                st.markdown("You **DO NOT** currently have a electrician booked for this event and require one.")
-
-            st.markdown("> Please note that an electrician can simultaneously supervise and event.")
 
             qQualificationsAvailable = "SELECT pg_enum.enumlabel FROM pg_enum, pg_type \
                              WHERE pg_type.oid = pg_enum.enumtypid AND pg_type.typname like 'qualification' \
