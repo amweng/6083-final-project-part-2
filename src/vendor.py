@@ -1,26 +1,22 @@
 import pandas as pd
 import streamlit as st
 import functions
-import datetime
-import time
 
 
 def show():
 
-
-
     aVendorType = ["Entertainment", "Caterers", "Venues"]
     vendor_type = st.sidebar.selectbox("Which vendor type applies to you?", aVendorType)
 
-    if (vendor_type == "Entertainment"):
+    if vendor_type == "Entertainment":
         st.write("# Entertainment Portal")
         show_entertainment_view()
 
-    if (vendor_type == "Caterers"):
+    if vendor_type == "Caterers":
         st.write("# Caterer Portal")
         show_caterer_view()
 
-    if (vendor_type == "Venues"):
+    if vendor_type == "Venues":
         st.write("# Venue Portal")
         show_venue_view()
 
@@ -29,24 +25,22 @@ def show_caterer_view():
     vendor_type = "Caterers"
     resource_type = "Caterer"
 
-    q_vendors = "SELECT resourceType, typeid, name FROM resources_" + vendor_type + ";"
-    df_vendors = functions.query_db(q_vendors)
-    a_vendor_names = df_vendors['name'].tolist()
-    a_vendor_ids = df_vendors['typeid'].tolist()
-    vendor_name = st.sidebar.selectbox("Who are you?", a_vendor_names)
+    type_id, vendor_name = getTypeIDandVendorName(vendor_type)
 
-    type_id = a_vendor_ids[a_vendor_names.index(vendor_name)]
-
-    st.write('### My reservations')
+    st.write('### Reservations')
     show_my_reservervations(resource_type, type_id)
 
-    st.write('### My menus')
+    st.write('### Menus')
     q_menus_accom = "SELECT m.name, m.description, a.accommodation FROM menus_offered m LEFT JOIN menus_accommodate a "\
                     + "ON m.menuid = a.menuid WHERE m.caterer_name = \'" + vendor_name.replace("'", "''") + "\';"
     df_menus_accom = functions.query_db(q_menus_accom)
 
     st.dataframe(df_menus_accom.rename(
         columns={'name': 'Menu', 'description': 'Description', 'accommodation': 'Dietary Accommodation'}))
+
+    st.write('### Dietary accommodations')
+
+    show_caterer_accommodations(type_id)
 
     show_requirements_section(resource_type, type_id)
 
@@ -55,14 +49,9 @@ def show_entertainment_view():
     vendor_type = "Entertainment"
     resource_type = vendor_type
 
-    q_vendors = "SELECT resourceType, typeid, name, genre FROM resources_" + vendor_type + ";"
-    df_vendors = functions.query_db(q_vendors)
-    a_vendor_names = df_vendors['name'].tolist()
-    a_vendor_ids = df_vendors['typeid'].tolist()
-    vendor_name = st.sidebar.selectbox("Who are you?", a_vendor_names)
-    type_id = a_vendor_ids[a_vendor_names.index(vendor_name)]
+    type_id, vendor_name = getTypeIDandVendorName(vendor_type)
 
-    st.write('### My events')
+    st.write('### Events')
     show_my_reservervations(resource_type, type_id)
 
     show_requirements_section(resource_type, type_id)
@@ -72,15 +61,9 @@ def show_venue_view():
     vendor_type = "Venues"
     resource_type = "Venue"
 
-    q_vendors = "SELECT resourceType, typeid, name, address FROM resources_" + vendor_type + ";"
-    df_vendors = functions.query_db(q_vendors)
-    a_vendor_names = df_vendors['name'].tolist()
-    a_vendor_ids = df_vendors['typeid'].tolist()
-    vendor_name = st.sidebar.selectbox("Who are you?", a_vendor_names)
+    type_id, vendor_name = getTypeIDandVendorName(vendor_type)
 
-    type_id = a_vendor_ids[a_vendor_names.index(vendor_name)]
-
-    st.write('### My reservations')
+    st.write('### Reservations')
     show_my_reservervations(resource_type, type_id)
 
     show_requirements_section(resource_type, type_id)
@@ -171,13 +154,47 @@ def show_requirements_section(resource_type, type_id):
 
 
 def show_my_reservervations(resourceType: str, typeID: int):
-    q_vendor_events = "SELECT eventID, start_at, end_at, cost" \
-                " FROM bookings" \
-                " WHERE resourceType = '" + resourceType + "'" \
-                " AND typeID = " + str(typeID) + ";"
+    q_vendor_events = "SELECT B.eventID, E.event_name, B.start_at, B.end_at, cost" \
+                " FROM bookings B, events E" \
+                " WHERE B.resourceType = '{0}'" \
+                " AND B.typeID = {1} " \
+                " AND B.eventID = E.eventID" \
+                " ORDER BY eventID;".format(resourceType, typeID)
     df_vendor_events = functions.query_db_no_cache(q_vendor_events)
     df_vendor_events = df_vendor_events.rename(columns={'eventid': 'Event ID', 'start_at': 'Start time',
-                                                        'end_at': 'End time','cost': 'fee'})
+                                                        'end_at': 'End time', 'cost': 'fee'})
     st.dataframe(df_vendor_events.style.format(subset=['fee'], formatter="{:.2f}"))
     return
+
+# Modified from Russ' brilliant "getDietaryAccommodations() query"
+def show_caterer_accommodations(typeID: int):
+    q_caterer_accommodations = "SELECT DISTINCT GA.eventid, E.event_planner_email, DR.restriction, DR.severity" \
+                               " FROM guests_attend GA, dietary_restrictions_have DR, events E" \
+                               " WHERE GA.eventid IN ( SELECT eventID" \
+                                " FROM bookings" \
+                                " WHERE resourceType = 'Caterer'" \
+                                " AND typeID = {0})" \
+                                " AND GA.email = DR.email" \
+                                " AND E.eventID = GA.eventID" \
+                                " ORDER BY GA.eventid, restriction, severity;".format(typeID)
+    df_caterer_accommodations = functions.query_db_no_cache(q_caterer_accommodations)
+
+    if len(df_caterer_accommodations) > 0:
+        st.write(
+            "Your menu was selected because it accommodates some or all of the dietary restrictions specified by your"
+            " client's guests. Please reach out to the listed EP for clarification.")
+
+    st.dataframe(df_caterer_accommodations.rename(
+        columns={'eventid': 'Event ID', 'event_planner_email': 'EP',
+                 'restriction': 'Accommodation', 'severity': 'Severity'}))
+
+def getTypeIDandVendorName(vendor_type: str):
+
+    q_vendors = "SELECT resourceType, typeid, name FROM resources_" + vendor_type + ";"
+    df_vendors = functions.query_db(q_vendors)
+    a_vendor_names = df_vendors['name'].tolist()
+    a_vendor_ids = df_vendors['typeid'].tolist()
+    vendor_name = st.sidebar.selectbox("Who are you?", a_vendor_names)
+    type_id = a_vendor_ids[a_vendor_names.index(vendor_name)]
+    return type_id, vendor_name
 

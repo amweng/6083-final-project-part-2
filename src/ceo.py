@@ -1,38 +1,35 @@
 import streamlit as st
+import pandas as pd
+import requests
 import functions
 
 
 def show():
-    # This page surveys the aims of the project, gives a few high-level statistics on the data
-    # and suggests how the user can interact with the applicaiton.
-    st.write(
-        '''
-        # Database-Driven Event Planning
-        by Andrew Weng (aw4108) & Russell Wustenberg (rw2873)
-    
-        Submitted in fulfillment of CS-GY 6083, Principles of Database Systems (Fall 2021),
-    
-        taught by Professor Julia Stoyonovitch, NYU Tandon School of Engineering.
-    
-        ---
-        This application was developped by Andrew Weng (aw4108) and Russell Wustenberg (rw2873) as the final project
-        for CS-GY 6083, Principles of Database Systems, taught by Julia Stoyonovitch at NYU's Tandon School of Engineering.
-        The application is built on top of a Postgres SQL database that comes pre-populated with synthetic data crafted
-        for this application.  
-    
-        ## The Goal
-        The goal of this application is to emulate an event planning service.  Event planning is notoriously difficult
-        due to the complexity of coordination between the venue, the guests, and any resources the event may need.  Our
-        service helps streamline the event planning process by making convenient the reservation of resources and communication
-        between the event planner, the guests and any third-party vendors.
-        '''
-    )
-    all_tables = "SELECT relname FROM pg_class WHERE relkind='r' AND relname !~ '^(pg_|sql_)';"
-    all_table_names = functions.query_db(all_tables)["relname"].tolist()
+    st.write("# Here's what's happening.")
 
-    st.write('# List of all relation names:')
+    q_event_count = "SELECT COUNT(*) from events;"
+    df_count = functions.query_db(q_event_count)
+    count = df_count.get('count')[0]
 
-    st.write(all_table_names)
+    config = functions.get_config(section="mapbox")
+    token = str(config['token'])
+    coords = getCoordsOfAllEvents(token)
 
-    ' ## todo: figure out how to compute some basic counting statistics over number of entries and display these as graphs / charts, etc.'
+    st.write("### {0} Events at {1} venues on the calendar".format(count, len(coords)))
+    st.map(coords, zoom=None)
 
+
+@st.cache(allow_output_mutation = True)
+def getCoordsOfAllEvents(token: str):
+    q_locations = "SELECT DISTINCT location from events;"
+    addresses = functions.query_db(q_locations)["location"].tolist()
+    base_path = "https://api.mapbox.com"
+    endpoint = "mapbox.places"
+    coords = []
+    for address in addresses:
+        url = "{0}/geocoding/v5/{1}/{2}.json?access_token={3}".format(base_path, endpoint, address, token)
+        r = requests.get(url=url)
+        data = r.json()
+        xy = data['features'][0]['geometry']['coordinates']
+        coords.append(xy)
+    return pd.DataFrame(coords, columns=['lon', 'lat'])
