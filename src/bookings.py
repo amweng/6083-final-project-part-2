@@ -243,7 +243,7 @@ def isMandatoryStaffPersonPresent(timeWindow: pandas.DataFrame):
                             THEN CAST(1 AS BIT) \
                             ELSE CAST(0 AS BIT) \
                             END;"
-    return (functions.query_db_no_cache(qIsStaffPersonPresent)['case'][0] == 1)
+    return (functions.query_db_no_cache(qIsStaffPersonPresent)['case'][0] == '1')
 
 def isElectricianPresent(timeWindow: pandas.DataFrame):
     qIsElectricianPresent = "SELECT CASE WHEN EXISTS (\
@@ -259,7 +259,7 @@ def isElectricianPresent(timeWindow: pandas.DataFrame):
                             THEN CAST (1 AS BIT) \
                             ELSE CAST (0 AS BIT) \
                             END;"
-    return (functions.query_db_no_cache(qIsElectricianPresent)['case'][0] == 1)
+    return (functions.query_db_no_cache(qIsElectricianPresent)['case'][0] == '1')
 
 def getAllDietaryRestrictions(dfEvent: pandas.DataFrame):
     qAllDietaryRestrictions = "SELECT 	GA.eventid, GA.email, DR.restriction, DR.severity \
@@ -314,7 +314,7 @@ def getAllCatererMenusPlusAccomodations(dfEvent: pandas.DataFrame, dfResource: p
 
 def isEvent_Over21(dfEvent: pandas.DataFrame):
     qIsEventOver21 = "SELECT over_21 FROM events WHERE eventid = " + str(dfEvent['eventid'][0]) + ";"
-    return functions.query_db(qIsEventOver21)['over_21'][0]
+    return functions.query_db_no_cache(qIsEventOver21)['over_21'][0]
 
 def isBartenderBooked(dfEvent: pandas.DataFrame):
     qIsBartenderBooked = "SELECT CASE WHEN EXISTS (SELECT * \
@@ -328,9 +328,9 @@ def isBartenderBooked(dfEvent: pandas.DataFrame):
                         THEN CAST (1 AS BIT) \
                         ELSE CAST (0 AS BIT) \
                         END;"
-    return (functions.query_db_no_cache(qIsBartenderBooked)['case'][0] == 1)
+    return (functions.query_db_no_cache(qIsBartenderBooked)['case'][0] == '1')
 
-def IsElectricianRequired(dfEvent: pandas.DataFrame):
+def isElectricianRequired(dfEvent: pandas.DataFrame):
     qIsElectricianRequired = "SELECT CASE WHEN EXISTS (SELECT * \
                                 FROM 	bookings B, resources_equipment R \
                                 WHERE 	B.resourcetype = 'Equipment' \
@@ -342,7 +342,7 @@ def IsElectricianRequired(dfEvent: pandas.DataFrame):
                             THEN CAST(1 AS BIT) \
                             ELSE CAST (0 AS BIT) \
                             END;"
-    return (functions.query_db_no_cache(qIsElectricianRequired)['case'][0] == 1)
+    return (functions.query_db_no_cache(qIsElectricianRequired)['case'][0] == '1')
 
 def bookRequiredResources(dfEvent: pandas.DataFrame, dfResource: pandas.DataFrame):
     # This code adapts Andrew's brilliant getVendorEquipmentReq() code into an iterative query for batch insertion
@@ -437,3 +437,13 @@ def deleteBooking(dfEvent: pandas.DataFrame, dfResource: pandas.DataFrame):
 def deleteEvent(dfEvent: pandas.DataFrame):
     qDeleteEventListing = "DELETE FROM events WHERE eventid = " + str(dfEvent['eventid'][0]) + ";"
     functions.execute_db(qDeleteEventListing)
+
+
+def isVenueLiquorLicensed(dfEvent: pandas.DataFrame):
+    qHasLiquorLicense = "SELECT R.liquorlicense \
+                        FROM 	bookings B, resources_venues R \
+                        WHERE 	B.resourcetype = 'Venue' \
+                        AND	B.typeid IS NOT NULL \
+                        AND	B.typeid = R.typeid \
+                        AND B.eventid = " + str(dfEvent['eventid'][0]) + ";"
+    return functions.query_db_no_cache(qHasLiquorLicense)['liquorlicense'][0]

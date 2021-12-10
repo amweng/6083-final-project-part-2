@@ -70,7 +70,7 @@ def show():
     user = st.sidebar.selectbox("Who are you?", aEventPlannerNames)
     userName = user
 
-    aEventPlannerActions = ["Create a New User","Make a New Event", "View Your Events", "Book Resources", "Cancel Resource Booking", "Cancel an Event"]
+    aEventPlannerActions = ["Create a New User","Make a New Event", "View Your Events","Book Resources","Validate Event Booking", "Cancel Resource Booking", "Cancel an Event"]
     action = st.sidebar.selectbox("What do you want to do?", aEventPlannerActions)
 
     user = getUserID(user, dfEventPlannerNames)
@@ -664,4 +664,86 @@ def show():
                 st.markdown('Your Event Has Been Cancelled.')
         except:
             st.markdown('It appears you have no events currently!')
-    
+
+    elif(action == "Validate Event Booking"):
+        # fetch the list of all events
+        qFetchEvents = "SELECT * FROM events E WHERE E.event_planner_email LIKE '" + user + \
+            "' ORDER BY date, start_at;"
+        dfEventsAll = functions.query_db_no_cache(qFetchEvents)
+
+        if(dfEventsAll.empty):
+            st.markdown("Hello, new user!  Select 'Make an Event' to create a new event!")
+
+        # create a callable dictionary of name:id pairs for the select box
+        dfEventSelect = dfEventsAll[['event_name', 'eventid']]
+        aEventSelectName = dfEventSelect['event_name'].tolist()
+        aEventSelectID = dfEventSelect['eventid'].tolist()
+        dic = dict(zip(aEventSelectID, aEventSelectName))
+        selectedEvent = st.selectbox('Select an event you would like to cancel:', aEventSelectID, format_func=lambda x: dic[x])
+
+        # use the selected event to extract the event row for the selected event
+        qSelectedDetails = "SELECT * FROM events E WHERE E.event_planner_email LIKE '" + user + \
+                            "' AND eventid = " + str(selectedEvent) + " ORDER BY date, start_at;"
+        dfSelectedEvent = functions.query_db_no_cache(qSelectedDetails)
+
+        st.markdown("Every event that is booked through this service **must** pass several staffing checks in order for us to approve all of the bookings \
+                    This page validates your current listing against the staffing requirements.  If you see something marked as required on this page, please \
+                    nagivage to the bookings page to reserve the necessary staff person for that requirement.  Please also note that, at a minimum, every event \
+                    requires that one member of our staff be present to oversee the event.  They will act as a liaison between yourself and all the resources you have booked\
+                    using this service.")
+
+        st.markdown("### Mandatory Staff Booking")
+        if(bookings.isMandatoryStaffPersonPresent(dfSelectedEvent)):
+            st.markdown("> You have booked at least one staff member.  The mandatory staffing requirement is **satisfied**.")
+        else:
+            st.markdown(">  The mandatory staffing requirement is **NOT SATISFIED**. \
+                        You **must** book at least one staff member in order for your event to be approaved. Any staff member may supervise an event, regardless of their qualifications. \
+                            Your event will not be given final booking approval without satisfying this criteria.")
+
+        st.markdown("### Liquor Licensing & Bartending")
+        if(bookings.isEvent_Over21(dfSelectedEvent)):
+            st.markdown("> This event is marked as requiring guests to be over the legal drinking age.  Please verify that all guests are of legal age when arriving at your event.")
+
+        else:
+            st.markdown("> This event is not marked as requiring guests be of at least 21 years of age.  This does not mean that alcohol cannot be served at the event (ie, family weddings, etc). \
+                         If you desire alcohol to be served at your event, your venue must have a liquor license and you must engage a bartender through our service.  This is for purposes of both \
+                         liability and safety for you and your guests.")
+            
+        if(bookings.isVenueLiquorLicensed(dfSelectedEvent) and bookings.isBartenderBooked(dfSelectedEvent)):
+            st.markdown("The venue you selected **does** have a liquor license.")
+            st.markdown("You have at least one staff member who is qualified to be a bartender.")
+            st.markdown("If you desire to you **may** serve alcohol at this event.")
+        elif(bookings.isVenueLiquorLicensed(dfSelectedEvent) and not bookings.isBartenderBooked(dfSelectedEvent)):
+            st.markdown("The venue you selected **does** have a liquor license.")
+            st.markdown("You **have not** booked any staff members qualified to be a bartender.")
+            st.markdown("If you desire to you **may** serve alcohol at this event, but **must** book a bartender through the booking page on this site.")
+        elif(not bookings.isVenueLiquorLicensed(dfSelectedEvent) and not bookings.isBartenderBooked(dfSelectedEvent)):
+            st.markdown("The venue you selected **does not** have a liquor license.")
+            st.markdown("You **have booked** at least one staff member who is qualified to be a bartender.")
+            st.markdown("You **may not** serve alcohol at this event unless you change the venue.  Users found in violation of this protocol will be subject to penalty as per the terms of service agreeemnt.")
+        else:
+            st.markdown("The venue you selected **does** have a liquor license.")
+            st.markdown("You **have not** booked any staff members qualified to be a bartender.")
+            st.markdown("Should you desire to have alcohol at this event, you will need to first book a new venue and then book a bartender to serve the alcohol.")
+
+
+
+        st.markdown("### Operation of Technical Equipment")
+        st.markdown("If your event has requested the use of any electrical equipment, one of our electrically certified staff member must be there to operate them.")
+
+        if(bookings.isElectricianRequired(dfSelectedEvent) and bookings.isElectricianPresent(dfSelectedEvent)):
+            st.markdown("Your event **does** have equipment booked requiring a certified technician to operate it.")
+            st.markdown("Your event **does** have a certified staff member booked to work at the event.")
+            st.markdown("> Your technical requirements for the event are **satisfied**.")   
+        elif(bookings.isElectricianRequired(dfSelectedEvent) and not bookings.isElectricianPresent(dfSelectedEvent)):
+            st.markdown("Your event **does** have equipment booked requiring a certified technician to operate it.")
+            st.markdown("Your event **DOES NOT** have a certified staff member booked to work at the event.")
+            st.markdown("> Your technical requirements for the event are **NOT SATISFIED**.  Please navigate to the staff booking page and book a member certified in use of 'Electronics.'")   
+        elif(not bookings.isElectricianRequired(dfSelectedEvent) and bookings.isElectricianPresent(dfSelectedEvent)):
+            st.markdown("Your event **does not** have equipment booked requiring a certified technician to operate it.")
+            st.markdown("Your event **does** have a certified staff member booked to work at the event.")
+            st.markdown("> Your technical requirements for the event are **satisfied**. Should you wish to book such equipment, you will have a qualified staff person present to operate it.'")   
+        else:
+            st.markdown("Your event **does not** have equipment booked requiring a certified technician to operate it.")
+            st.markdown("Your event **does not** have a certified staff member booked to work at the event.")
+            st.markdown("> Your technical requirements for the event are **satisfied**. Should you wish to book such equipment, you will have a qualified staff person present to operate it.'")     
