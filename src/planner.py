@@ -1,10 +1,13 @@
 import streamlit as st
 import functions
 import pandas
+import matplotlib.pyplot as plt
 import datetime
 import pytz
 import tzlocal
 import bookings
+import requests
+
 
 user = 'test'
 action = 'test'
@@ -41,6 +44,22 @@ def createNewEvent(date: str, start_at: str, end_at: str, location: str, budget:
                            '" + event_name + "', \
                            '" + ageQual + "');"
             functions.execute_db(qInsertEvent)
+
+
+@st.cache(allow_output_mutation = True)
+def getCoordsOfThisEvent(dfEvent: pandas.DataFrame, token: str):
+    # All credit goes to Andrew for figuring this one out!
+
+    address = dfEvent["location"].tolist()
+    base_path = "https://api.mapbox.com"
+    endpoint = "mapbox.places"
+    coords = []
+    url = "{0}/geocoding/v5/{1}/{2}.json?access_token={3}".format(base_path, endpoint, address, token)
+    r = requests.get(url=url)
+    data = r.json()
+    xy = data['features'][0]['geometry']['coordinates']
+    coords.append(xy)
+    return pandas.DataFrame(coords, columns=['lon', 'lat'])
 
 def show():
     qEventPlanners = "SELECT email, first_name, last_name FROM event_planners;"
@@ -176,11 +195,157 @@ def show():
         dfSelectedEvent = functions.query_db_no_cache(qSelectedDetails)
 
         # For each event, display the location details
-        st.markdown('### Locations for all events:')
-        st.markdown('### REQUIRES THAT BOOKINGS BE COMPLETED')
-        qEventLocations = "SELECT E.date, E.start_at, E.end_at, V.address, V.roomNum FROM events E, resources_venues V WHERE E.location like V.address ORDER BY E.date, E.start_at;"
-        dfEventLocations = functions.query_db(qEventLocations)
-        st.table(dfEventLocations)
+        st.markdown("---")
+        st.markdown('### Location for this event:')        
+        st.markdown("#### " + str(dfSelectedEvent['location'][0]))
+
+        config = functions.get_config(section="mapbox")
+        token = str(config['token'])
+        coords = getCoordsOfThisEvent(dfSelectedEvent, token)
+
+        st.map(coords,zoom=None)
+        st.markdown("---")
+        st.markdown("### Schedule of Events: ")
+        st.markdown("Your event begins at **" + str(dfSelectedEvent['start_at'][0].astimezone('America/New_York')) + "**")
+        st.markdown("Your event ends at **" + str(dfSelectedEvent['end_at'][0].astimezone('America/New_York')) + "**")
+        
+        st.markdown("---")
+        st.markdown("### Catering Reservation")
+        qViewCateringReservation = "SELECT C.* \
+                                    FROM bookings B, resources_caterers C \
+                                    WHERE B.eventid = " + str(dfSelectedEvent['eventid'][0]) + "  \
+                                    AND B.resourcetype = 'Caterer' \
+                                    AND B.typeid = C.typeid;"
+        dfViewCatereringReservation = functions.query_db_no_cache(qViewCateringReservation)
+
+        if(dfViewCatereringReservation.empty):
+            st.write("There is no caterer reserved for this event.  Please navigate to the 'Make a Booking' page if you would like to reserve one.")
+        else:
+            st.write("You have booked **" + dfViewCatereringReservation['name'][0] + "** for your event.")
+            st.write("Their per-event fee is ** $" + str(dfViewCatereringReservation['fee'][0]) + "**.")
+            st.write("Here is a full list of their available menus:")
+            
+            qViewCateringMenus = "SELECT MO.name as menu_name, MO.description \
+                                 FROM resources_caterers RC, menus_offered MO \
+                                 WHERE RC.typeid = " + str(dfViewCatereringReservation['typeid'][0]) + \
+                                 "AND RC.name = MO.caterer_name;"
+            dfViewCateringMenus = functions.query_db_no_cache(qViewCateringMenus)
+            st.write(dfViewCateringMenus.assign(foo="").set_index('foo'))
+
+        st.markdown("---")
+        st.markdown("### Entertainment Reservation(s)")
+
+        qViewEntertainmentReservations = "SELECT E.* \
+                                        FROM bookings B, resources_entertainment E \
+                                        WHERE B.eventid = " + str(dfSelectedEvent['eventid'][0]) + "  \
+                                        AND B.resourcetype = 'Entertainment' \
+                                        AND B.typeid = E.typeid \
+                                        ORDER BY E.name;"
+        dfViewEntertainmentReservations = functions.query_db_no_cache(qViewEntertainmentReservations)
+
+        if(dfViewEntertainmentReservations.empty):
+            st.write("No entertainers are reserved for this event.  Please navigate to the 'Make a Booking' page if you would like to reserve them.")
+        else:
+            st.write("Here is the full list of entertainment acts you have booked for your event:")
+            st.write(dfViewEntertainmentReservations[['name', 'genre', 'contentrating', 'fee']].assign(foo="").set_index('foo').style.format(subset=['fee'], formatter="{:.2f}"))
+
+        st.markdown("---")
+        st.markdown("### Staff Engaged for the Event")
+        qViewStaffReservation =  "SELECT S.* \
+                                FROM bookings B, resources_staff S \
+                                WHERE B.eventid = " + str(dfSelectedEvent['eventid'][0]) + "  \
+                                AND B.resourcetype = 'Staff' \
+                                AND B.typeid = S.typeid \
+                                ORDER BY last_name;"
+        dfViewStaffReservation = functions.query_db_no_cache(qViewStaffReservation)
+
+        if(dfViewStaffReservation.empty):
+            st.write("No staff members are reserved for this event.  At least one must be engaged as per our terms of service!")
+        else:
+            st.write("Here is the full list of staff members you have booked for your event:")
+            st.write(dfViewStaffReservation[['first_name', 'last_name', 'pronoun','fee']].assign(foo="").set_index('foo').style.format(subset=['fee'], formatter="{:.2f}"))
+
+            st.write("Here are the qualifications for each of your staff members.  Use these to make sure they are assigned to their proper tasks.")
+            qViewStaffQualifications =  "SELECT S.*, Q.qualification \
+                                FROM bookings B, resources_staff S, qualifications_have Q \
+                                WHERE B.eventid = " + str(dfSelectedEvent['eventid'][0]) + "  \
+                                AND B.resourcetype = 'Staff' \
+                                AND B.typeid = S.typeid \
+                                AND S.email = Q.staff_email \
+                                ORDER BY last_name;"
+            dfViewStaffQualifications = functions.query_db_no_cache(qViewStaffQualifications)
+            st.write(dfViewStaffQualifications[['first_name','last_name','qualification']].assign(foo="").set_index('foo'))
+
+        st.markdown("---")
+        st.markdown("### Reserved Equipment")
+        qViewEquipmentReservation =  "SELECT E.* \
+                                FROM bookings B, resources_equipment E \
+                                WHERE B.eventid = " + str(dfSelectedEvent['eventid'][0]) + "  \
+                                AND B.resourcetype = 'Equipment' \
+                                AND B.typeid = E.typeid \
+                                ORDER BY name;"
+        dfViewEquipmentReservation = functions.query_db_no_cache(qViewEquipmentReservation)
+
+        st.write("Here is a list of all equipment reservations.  Please note that fee is calculated here as per-unit.  See the section below for aggregate cost.")
+        st.write(dfViewEquipmentReservation[['name','equipmenttype','quantity','fee']].assign(foo="").set_index('foo').style.format(subset=['fee'], formatter="${:.2f}"))
+
+        st.markdown("---")
+        st.markdown("### Finances for this Event")
+        qGrossCost = "SELECT sum(cost * num) FROM bookings B WHERE B.eventid = " + str(dfSelectedEvent['eventid'][0]) + ";"
+        dfGrossCost = functions.query_db_no_cache(qGrossCost)
+        aGrossCost = dfGrossCost['sum'][0]
+
+        if ((dfSelectedEvent['budget'][0] - aGrossCost) > 0.0):
+            st.markdown("#### Your event is currently below budget.")
+        else:
+            st.markdown("#### Your event is currently OVER BUDGET by $" + str(dfSelectedEvent['budget'][0] - aGrossCost))
+
+        st.markdown("Your stated budget for this event was $" + str(dfSelectedEvent['budget'][0]))
+
+        st.markdown("Your current gross cost for the event is $" + str(aGrossCost))
+
+        
+
+        st.markdown("The cost of each of your booking categories is:")
+        qItemizedCost = "SELECT A.category, sum, COALESCE(aggregate_cost,0) as itemized_cost, (COALESCE(aggregate_cost,0) / sum) * 100 as percent_cost \
+                        FROM ( \
+                            SELECT * from ( \
+                                SELECT  pg_enum.enumlabel::text as category \
+                                    FROM pg_enum, pg_type \
+                                    WHERE pg_type.oid = pg_enum.enumtypid \
+                                    AND pg_type.typname like 'resourcetype' \
+                                    ORDER BY pg_enum.enumlabel ) A, \
+                                (SELECT SUM(cost * num)  \
+                                FROM bookings \
+                                WHERE eventid = " + str(dfSelectedEvent['eventid'][0]) + ") B) A \
+                            LEFT JOIN \
+                            (SELECT resourcetype::text as category, sum(cost * num) aggregate_cost \
+                            FROM 	bookings \
+                            WHERE	eventid = " + str(dfSelectedEvent['eventid'][0]) + " \
+                            GROUP BY resourcetype) B \
+                            ON	A.category = B.category;"
+        dfItemizedCost = functions.query_db_no_cache(qItemizedCost)
+
+        # For clean plotting in the pie chart, we remove categories with zero values
+        # We need to do this otherwise 
+        # keys = dfItemizedCost['category'].tolist()
+        # values = dfItemizedCost['percent_cost'].tolist()
+        # dictData = dict(zip(keys, values))
+        # dictData = {k:v for k,v in dictData.items() if v > 0}
+        # labels = list(dictData.keys())
+        # values = list(dictData.values())
+
+        fig, ax = plt.subplots()
+        ax.pie(dfItemizedCost['percent_cost'].tolist(), labels=dfItemizedCost['category'].tolist())
+        ax.axis('equal')
+        st.pyplot(fig)
+        
+        
+
+
+        
+
+
 
     elif(action == "Book Resources"):
         st.markdown("# Make a Booking")
@@ -340,7 +505,7 @@ def show():
 
             st.markdown("##### Would you like to book this resource?")
             if st.button('Reserve this Resource!'):
-                bookings.makeBooking(dfSelectedEvent, dfSelectedResourceDetails, 1)
+                bookings.makeBooking(dfSelectedEvent, dfSelectedResourceDetails, quantity)
                 st.markdown('Resource Booked!')
 
         elif(selectedResourceType == 'Staff'):

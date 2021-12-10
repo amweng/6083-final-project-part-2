@@ -163,7 +163,7 @@ def show_my_reservervations(resourceType: str, typeID: int):
     df_vendor_events = functions.query_db_no_cache(q_vendor_events)
     df_vendor_events = df_vendor_events.rename(columns={'eventid': 'Event ID', 'start_at': 'Start time',
                                                         'end_at': 'End time', 'cost': 'fee'})
-    st.dataframe(df_vendor_events.style.format(subset=['fee'], formatter="{:.2f}"))
+    st.dataframe(df_vendor_events.style.format(subset=['fee'], formatter="{:,.2f}"))
     return
 
 # Modified from Russ' brilliant "getDietaryAccommodations() query"

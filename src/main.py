@@ -1,7 +1,7 @@
 import streamlit as st
 import psycopg2
 from configparser import ConfigParser
-import pandas as pd
+import pandas
 import numpy as np
 import functions
 import matplotlib.pyplot as plt
