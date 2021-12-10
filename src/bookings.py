@@ -291,7 +291,7 @@ def getAllAccomodatingMenus(dfEvent: pandas.DataFrame):
 
 def getCaterersAccomodatingMenus(dfEvent: pandas.DataFrame, dfResource: pandas.DataFrame):
     qCaterersAccomodatingMenus = "SELECT distinct name as menu_name, accommodation\
-                                FROM (	SELECT 	MO.menuid, MO.caterer_name, MO.name, MA.accommodation \
+                                FROM (	SELECT 	MO.menuid, MO.caterer_name, MO.name, MO.description, MA.accommodation \
                                     FROM	menus_offered MO full join menus_accommodate MA \
                                     ON	MO.menuid = MA.menuid \
                                     ORDER BY MO.caterer_name, MO.name, MA.accommodation ) A \
@@ -300,17 +300,17 @@ def getCaterersAccomodatingMenus(dfEvent: pandas.DataFrame, dfResource: pandas.D
                                     FROM	guests_attend GA, dietary_restrictions_have DR \
                                     WHERE	GA.eventid = " + str(dfEvent['eventid'][0]) + " \
                                     AND	GA.email = DR.email) \
-                                AND	caterer_name = '" + str(dfResource['name'][0]) + "';"
-    return functions.query_db(qCaterersAccomodatingMenus)
+                                AND	caterer_name = $$" + str(dfResource['name'][0]) + "$$;"
+    return functions.query_db_no_cache(qCaterersAccomodatingMenus)
 
 def getAllCatererMenusPlusAccomodations(dfEvent: pandas.DataFrame, dfResource: pandas.DataFrame):
-    qAllCatererMenusPlusAccomodations = "SELECT menuid, name, accommodation FROM ( \
-                                            SELECT 	MO.menuid, MO.name, MO.caterer_name, MA.accommodation \
+    qAllCatererMenusPlusAccomodations = "SELECT menuid, name, accommodation, description FROM ( \
+                                            SELECT 	MO.menuid, MO.name, MO.caterer_name, MO.description, MA.accommodation \
                                             FROM	menus_offered MO full join menus_accommodate MA \
                                             ON	MO.menuid = MA.menuid) A \
-                                        WHERE caterer_name = '" + str(dfResource['name'][0]) + "' \
+                                        WHERE caterer_name = $$" + str(dfResource['name'][0]) + "$$ \
                                         ORDER BY name;"
-    return functions.query_db(qAllCatererMenusPlusAccomodations)
+    return functions.query_db_no_cache(qAllCatererMenusPlusAccomodations)
 
 def isEvent_Over21(dfEvent: pandas.DataFrame):
     qIsEventOver21 = "SELECT over_21 FROM events WHERE eventid = " + str(dfEvent['eventid'][0]) + ";"

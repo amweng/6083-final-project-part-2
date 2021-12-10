@@ -524,7 +524,7 @@ def show():
                 else:
                     st.markdown('> ** YOU DO NOT HAVE AN ELECTRICIAN BOOKED FOR THIS EVENT AND MUST BOOK ONE BEFORE THE EVENT CAN BE APPROVED.')
 
-            if not bookings.isMandatoryStaffPersonPresent(dfSelectedEvent):
+            if bookings.isMandatoryStaffPersonPresent(dfSelectedEvent):
                 st.markdown("> All events are required to book one mandatory staff person tasked with overseeing the event.  This is part of the terms of service for using this applicaiton.")
 
             st.markdown("##### In order for your event to be approved, it must pass these checks:")
