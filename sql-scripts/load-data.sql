@@ -9,7 +9,7 @@ DELETE FROM guests_attend;
 DELETE FROM events;
 DELETE FROM event_planners;
 DELETE FROM resources CASCADE;
-
+DELETE FROM bookings;
 
 ----------------------------------------------------------------------
 
@@ -140,7 +140,7 @@ FROM temp_resources_caterers;
 \copy menus_accommodate FROM '~/6083-final-project-part-2/data/menus_accommodate.csv' WITH CSV;
 \copy resources_require FROM '~/6083-final-project-part-2/data/resources_require.csv' WITH CSV;
 \copy qualifications_have FROM '~/6083-final-project-part-2/data/qualifications_have.csv' WITH CSV;
-
+\copy bookings FROM '~/6083-final-project-part-2/data/bookings.csv' WITH CSV;
 
 -- LEGACY
 
