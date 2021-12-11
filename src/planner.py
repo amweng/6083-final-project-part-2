@@ -154,8 +154,11 @@ def show():
 
             if(st.button("Create Event")):
                 try:
+                    # Insert the event details into the events table
                     dfEventDetails = createNewEvent(dfEventTimeframe['date'][0], dfEventTimeframe['start_at'][0], dfEventTimeframe['end_at'][0], \
                                    dfSelectedResourceDetails['address'][0], str(aEventBudget), user, aEventName, dfEventTimeframe['over21'][0])
+                    
+                    # Book the Venue for the new resource
                     qBookVenue = "INSERT INTO bookings VALUES (" + str(dfEventDetails['eventid'][0]) + ",'Venue'," + str(dfSelectedResourceDetails['typeid'][0]) + ",'"  + \
                                  str( dfEventTimeframe['start_at'][0]) + "','" +  dfEventTimeframe['end_at'][0] + "'," + str(dfSelectedResourceDetails['fee'][0]) + ",1,$$" + \
                                  str(dfSelectedResourceDetails['name'][0]) + "$$);"
