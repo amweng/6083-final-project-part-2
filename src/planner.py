@@ -45,6 +45,9 @@ def createNewEvent(date: str, start_at: str, end_at: str, location: str, budget:
                            '" + ageQual + "');"
             functions.execute_db(qInsertEvent)
 
+            qGetEventEntry = "SELECT * FROM events WHERE location = '" + location + "' AND start_at = '" + start_at + "' AND end_at = '" + end_at + "';"
+            return functions.query_db_no_cache(qGetEventEntry)
+
 
 @st.cache(allow_output_mutation = True)
 def getCoordsOfThisEvent(dfEvent: pandas.DataFrame, token: str):
@@ -150,9 +153,13 @@ def show():
              
 
             if(st.button("Create Event")):
-                createNewEvent(dfEventTimeframe['date'][0], dfEventTimeframe['start_at'][0], dfEventTimeframe['end_at'][0], \
-                                   dfSelectedResourceDetails['address'][0], str(aEventBudget), user, aEventName, dfEventTimeframe['over21'][0])
                 try:
+                    dfEventDetails = createNewEvent(dfEventTimeframe['date'][0], dfEventTimeframe['start_at'][0], dfEventTimeframe['end_at'][0], \
+                                   dfSelectedResourceDetails['address'][0], str(aEventBudget), user, aEventName, dfEventTimeframe['over21'][0])
+                    qBookVenue = "INSERT INTO bookings VALUES (" + str(dfEventDetails['eventid'][0]) + ",'Venue'," + str(dfSelectedResourceDetails['typeid'][0]) + ",'"  + \
+                                 str( dfEventTimeframe['start_at'][0]) + "','" +  dfEventTimeframe['end_at'][0] + "'," + str(dfSelectedResourceDetails['fee'][0]) + ",1,$$" + \
+                                 str(dfSelectedResourceDetails['name'][0]) + "$$);"
+                    functions.execute_db(qBookVenue)
                     st.markdown('Event Created!')
                 except:
                     st.markdown("Hmmm.... something doesn't seem quite right about your event.  Check the input fields and try again.")
@@ -291,7 +298,7 @@ def show():
 
         st.markdown("---")
         st.markdown("### Finances for this Event")
-        qGrossCost = "SELECT sum(cost * num) FROM bookings B WHERE B.eventid = " + str(dfSelectedEvent['eventid'][0]) + ";"
+        qGrossCost = "SELECT COALESCE(SUM(cost * num),0) as sum FROM bookings B WHERE B.eventid = " + str(dfSelectedEvent['eventid'][0]) + ";"
         dfGrossCost = functions.query_db_no_cache(qGrossCost)
         aGrossCost = dfGrossCost['sum'][0]
 
@@ -305,41 +312,41 @@ def show():
         st.markdown("Your current gross cost for the event is $" + str(aGrossCost))
 
         
+        if(bookings.hasBookings(dfSelectedEvent)):
+            st.markdown("The cost of each of your booking categories is:")
+            qItemizedCost = "SELECT A.category, sum, COALESCE(aggregate_cost,0) as itemized_cost, (COALESCE(aggregate_cost,0) / sum) * 100 as percent_cost \
+                            FROM ( \
+                                SELECT * from ( \
+                                    SELECT  pg_enum.enumlabel::text as category \
+                                        FROM pg_enum, pg_type \
+                                        WHERE pg_type.oid = pg_enum.enumtypid \
+                                        AND pg_type.typname like 'resourcetype' \
+                                        ORDER BY pg_enum.enumlabel ) A, \
+                                    (SELECT SUM(cost * num)  \
+                                    FROM bookings \
+                                    WHERE eventid = " + str(dfSelectedEvent['eventid'][0]) + ") B) A \
+                                LEFT JOIN \
+                                (SELECT resourcetype::text as category, sum(cost * num) aggregate_cost \
+                                FROM 	bookings \
+                                WHERE	eventid = " + str(dfSelectedEvent['eventid'][0]) + " \
+                                GROUP BY resourcetype) B \
+                                ON	A.category = B.category;"
+            dfItemizedCost = functions.query_db_no_cache(qItemizedCost)
 
-        st.markdown("The cost of each of your booking categories is:")
-        qItemizedCost = "SELECT A.category, sum, COALESCE(aggregate_cost,0) as itemized_cost, (COALESCE(aggregate_cost,0) / sum) * 100 as percent_cost \
-                        FROM ( \
-                            SELECT * from ( \
-                                SELECT  pg_enum.enumlabel::text as category \
-                                    FROM pg_enum, pg_type \
-                                    WHERE pg_type.oid = pg_enum.enumtypid \
-                                    AND pg_type.typname like 'resourcetype' \
-                                    ORDER BY pg_enum.enumlabel ) A, \
-                                (SELECT SUM(cost * num)  \
-                                FROM bookings \
-                                WHERE eventid = " + str(dfSelectedEvent['eventid'][0]) + ") B) A \
-                            LEFT JOIN \
-                            (SELECT resourcetype::text as category, sum(cost * num) aggregate_cost \
-                            FROM 	bookings \
-                            WHERE	eventid = " + str(dfSelectedEvent['eventid'][0]) + " \
-                            GROUP BY resourcetype) B \
-                            ON	A.category = B.category;"
-        dfItemizedCost = functions.query_db_no_cache(qItemizedCost)
+            # For clean plotting in the pie chart, we remove categories with zero values
+            # We need to do this otherwise 
+            # keys = dfItemizedCost['category'].tolist()
+            # values = dfItemizedCost['percent_cost'].tolist()
+            # dictData = dict(zip(keys, values))
+            # dictData = {k:v for k,v in dictData.items() if v > 0}
+            # labels = list(dictData.keys())
+            # values = list(dictData.values())
 
-        # For clean plotting in the pie chart, we remove categories with zero values
-        # We need to do this otherwise 
-        # keys = dfItemizedCost['category'].tolist()
-        # values = dfItemizedCost['percent_cost'].tolist()
-        # dictData = dict(zip(keys, values))
-        # dictData = {k:v for k,v in dictData.items() if v > 0}
-        # labels = list(dictData.keys())
-        # values = list(dictData.values())
-
-        fig, ax = plt.subplots()
-        ax.pie(dfItemizedCost['percent_cost'].tolist(), labels=dfItemizedCost['category'].tolist())
-        ax.axis('equal')
-        st.pyplot(fig)
-        
+            fig, ax = plt.subplots()
+            ax.pie(dfItemizedCost['percent_cost'].tolist(), labels=dfItemizedCost['category'].tolist())
+            ax.axis('equal')
+            st.pyplot(fig)
+            
         
 
 

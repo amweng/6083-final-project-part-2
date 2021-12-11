@@ -18,6 +18,12 @@ def isResourceAvailable(resourceType: str, resourceID: int, timeWindow: pandas.D
             return False
     return True
 
+def hasBookings(dfEvent: pandas.DataFrame):
+    qHasBookings = "SELECT CASE WHEN EXISTS (SELECT * FROM bookings WHERE eventid = " \
+                    + str(dfEvent['eventid'][0]) + ") THEN CAST (1 AS BIT) ELSE CAST (0 AS BIT) END;"
+    return (functions.query_db_no_cache(qHasBookings)['case'][0] == '1')
+
+
 def getAllAvailableEntertainers(eventID: int, resourceType: str, timeWindow: pandas.DataFrame):
     qAllAvailableEntertainers = "SELECT A.* " + \
                                 "FROM (" + \
@@ -404,7 +410,7 @@ def makeBooking(dfEvent: pandas.DataFrame, dfResource: pandas.DataFrame, qty: in
     else:
         qInsertBooking =   "INSERT INTO bookings VALUES (" + str(dfEvent['eventid'][0]) + ",'" + str(dfResource['resourcetype'][0]) + \
                     "'," + str(dfResource['typeid'][0]) + ",'" + str(dfEvent['start_at'][0]) + "','" + str(dfEvent['end_at'][0]) + \
-                    "'," + str(dfResource['fee'][0]) + "," + str(qty) + ",'" + str(dfResource['name'][0]) + "')  ON CONFLICT (eventid, resourcetype, typeid) DO NOTHING;"
+                    "'," + str(dfResource['fee'][0]) + "," + str(qty) + ",$$" + str(dfResource['name'][0]) + "$$)  ON CONFLICT (eventid, resourcetype, typeid) DO NOTHING;"
         functions.execute_db(qInsertBooking)
         bookRequiredResources(dfEvent, dfResource)
 
