@@ -3,6 +3,7 @@
 
 > Repository created by
 > __Andrew Weng__ (aw4108)
+
 > __Russell Wustenberg__ (rw2873)
 
 __CS-GY 6083 - PRINCIPLES OF DATABASE SYSTEMS__
@@ -52,13 +53,13 @@ the scripts working using your local python interpreter.  Within `sql-scripts` a
 automatically load in the data from the CSV files in `data`.  From within your postgreSQL database,
 you can create and populate the data by running the following two commands:
 
-> `\i PATH_TO/sql-scripts/schema.sql`
+`\i PATH_TO/sql-scripts/schema.sql`
 
-This command will run the SQL creation file and set up all of the tables for the database.
+> This command will run the SQL creation file and set up all of the tables for the database.
 
-> `\i PATH_TO/sql-scripts/load-data.sql`
+`\i PATH_TO/sql-scripts/load-data.sql`
 
-This command will populate the data with over __2,000__ unique data entries!
+> This command will populate the data with over __2,000__ unique data entries!
 
 ### What to do?
 Once you are viewing the web page, feel free to play! Plan out an event, make a few bookings, or view the set up
