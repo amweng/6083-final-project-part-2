@@ -178,7 +178,7 @@ CREATE TABLE Menus_Offered (
 	name		varchar(128),
 	description	text,
 	PRIMARY KEY (menuID, caterer_name),
-	FOREIGN KEY (caterer_name) REFERENCES Resources_Caterers(name)
+	FOREIGN KEY (caterer_name) REFERENCES Resources_Caterers(name) ON DELETE CASCADE
 );
 
 CREATE TABLE Menus_Accommodate (
